@@ -55,3 +55,36 @@ CREATE INDEX idx_movimentacoes_item_ocorrida_em
 
 CREATE INDEX idx_movimentacoes_empresa_ocorrida_em
     ON core.movimentacoes (empresa_id, ocorrida_em);
+
+-- ============================================================
+-- PROTEGER UNIDADE DO ITEM APOS EXISTIREM MOVIMENTACOES
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION core.fn_bloquear_troca_unidade_item()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+
+    IF OLD.unidade_id IS DISTINCT FROM NEW.unidade_id
+       AND EXISTS (
+            SELECT 1
+            FROM core.movimentacoes
+            WHERE item_id = OLD.id
+              AND empresa_id = OLD.empresa_id
+       )
+    THEN
+        RAISE EXCEPTION
+            'Nao e permitido alterar a unidade de um item que possui movimentacoes.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+CREATE TRIGGER trg_bloquear_troca_unidade_item
+BEFORE UPDATE OF unidade_id
+ON core.itens
+FOR EACH ROW
+EXECUTE FUNCTION core.fn_bloquear_troca_unidade_item();
