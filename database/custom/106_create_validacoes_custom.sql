@@ -66,6 +66,37 @@ FOR EACH ROW
 EXECUTE FUNCTION custom.fn_validar_item_categoria();
 
 
+-- ============================================================
+-- 1.1 BLOQUEAR RECATEGORIZACAO DE ITEM COM VALORES CUSTOM
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION custom.fn_bloquear_recategorizacao_item()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+
+    IF OLD.categoria_id IS DISTINCT FROM NEW.categoria_id
+       AND EXISTS (
+            SELECT 1
+            FROM custom.valores_item
+            WHERE item_id = OLD.item_id
+       )
+    THEN
+        RAISE EXCEPTION
+            'Nao e permitido alterar a categoria de um item que possui valores personalizados.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+CREATE TRIGGER trg_bloquear_recategorizacao_item
+BEFORE UPDATE
+ON custom.item_categorias
+FOR EACH ROW
+EXECUTE FUNCTION custom.fn_bloquear_recategorizacao_item();
 
 -- ============================================================
 -- 2. VALIDAR EMPRESA DO CAMPO
