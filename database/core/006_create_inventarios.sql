@@ -59,3 +59,33 @@ CREATE TABLE core.inventarios (
 
 CREATE INDEX idx_inventarios_empresa_status
     ON core.inventarios (empresa_id, status);
+
+-- ============================================================
+-- PROTEGER INVENTARIOS HISTORICOS
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION core.fn_proteger_inventario_historico()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+
+    IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION
+            'Inventarios nao podem ser excluidos. Utilize o cancelamento.';
+    END IF;
+
+    IF OLD.status IN ('CONCLUIDO', 'CANCELADO') THEN
+        RAISE EXCEPTION
+            'Inventarios concluidos ou cancelados nao podem ser alterados.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_proteger_inventario_historico
+BEFORE UPDATE OR DELETE
+ON core.inventarios
+FOR EACH ROW
+EXECUTE FUNCTION core.fn_proteger_inventario_historico();

@@ -12,19 +12,19 @@
 
 ## ✨ Sobre o projeto
 
-O **Estoque Flex** é um sistema de gerenciamento de estoque pensado inicialmente para uma empresa de produção personalizada, mas sua arquitetura evoluiu para um modelo genérico e configurável.
+O **Estoque Flex** é um sistema de gerenciamento de estoque pensado para pequenos negócios que precisam de controle confiável sem perder flexibilidade.
 
-A ideia central é separar:
+A arquitetura separa:
 
 ```text
 CORE
 → controla o estoque
 
 CUSTOM
-→ descreve o estoque
+→ descreve e personaliza o estoque
 ```
 
-Assim, a estrutura principal continua estável enquanto cada empresa pode criar suas próprias categorias, unidades, campos personalizados e opções de cadastro.
+Assim, as regras fundamentais permanecem estáveis enquanto cada empresa pode configurar categorias, campos personalizados, opções e valores sem alterar o núcleo do estoque.
 
 Exemplo:
 
@@ -104,21 +104,78 @@ CORE → CUSTOM ❌
 
 ---
 
-## 🏗️ Estrutura
+## 🏗️ Arquitetura do backend
+
+O backend será um **modular monolith**.
+
+Fluxo principal:
 
 ```text
-estoque-flex/
-├── backend/
-├── database/
-│   ├── core/
-│   ├── custom/
-│   └── shared/
-├── docs/
-├── frontend/
-├── tests/
-├── .gitignore
-└── README.md
+HTTP / Router
+      ↓
+Pydantic Schema
+      ↓
+Service / regra de negócio
+      ↓
+SQLAlchemy
+      ↓
+PostgreSQL
 ```
+
+O `main.py` permanece pequeno e atua como ponto de montagem da aplicação. Regras de negócio não devem ser concentradas nele.
+
+Estrutura-alvo:
+
+```text
+backend/
+├── app/
+│   ├── main.py
+│   ├── shared/
+│   ├── health/
+│   ├── auth/
+│   ├── core/
+│   │   ├── empresas/
+│   │   ├── unidades/
+│   │   └── itens/
+│   ├── stock/
+│   │   ├── movimentacoes/
+│   │   ├── saldos/
+│   │   └── inventarios/
+│   └── custom/
+│       ├── categorias/
+│       ├── campos/
+│       ├── campo_opcoes/
+│       └── valores_item/
+├── tests/
+├── requirements.txt
+└── .env.example
+```
+
+### Estado atual do backend
+
+A fundação começou com:
+
+```text
+backend/app/main.py
+backend/app/core/
+backend/app/db/
+```
+
+O primeiro endpoint já está definido:
+
+```text
+GET /api/v1/health
+```
+
+Resposta esperada:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+A fundação completa ainda precisa passar pelo Gate do backend, incluindo configuração, conexão PostgreSQL, testes com pytest/TestClient e validação de `SELECT 1`.
 
 ---
 
@@ -127,6 +184,8 @@ estoque-flex/
 O projeto utiliza **PostgreSQL**.
 
 ### CORE
+
+Implementado:
 
 ```text
 core.empresas
@@ -137,14 +196,30 @@ core.inventarios
 core.inventario_itens
 ```
 
-Views planejadas:
+Views:
 
 ```text
 core.vw_saldos_estoque
 core.vw_itens_estoque_baixo
 ```
 
+Scripts CORE:
+
+```text
+001_create_schemas.sql
+002_create_empresas.sql
+003_create_unidades.sql
+004_create_itens.sql
+005_create_movimentacoes.sql
+006_create_inventarios.sql
+007_create_inventario_itens.sql
+008_create_view_saldos.sql
+009_create_view_estoque_baixo.sql
+```
+
 ### CUSTOM
+
+Implementado:
 
 ```text
 custom.categorias
@@ -152,6 +227,12 @@ custom.item_categorias
 custom.campos
 custom.campo_opcoes
 custom.valores_item
+```
+
+Scripts CUSTOM:
+
+```text
+100–106
 ```
 
 ---
@@ -170,7 +251,7 @@ ENTRADAS
 = SALDO ATUAL
 ```
 
-Isso evita manter duas fontes diferentes de verdade.
+Isso mantém as movimentações como fonte de verdade e preserva o histórico.
 
 ---
 
@@ -188,6 +269,8 @@ Exemplos:
 ```
 
 Cada unidade pode definir se aceita valores decimais.
+
+Itens que já possuem movimentações não podem trocar de unidade, preservando a coerência histórica.
 
 ---
 
@@ -222,34 +305,35 @@ DATA
 LISTA
 ```
 
----
-
-## 🛠️ Tecnologias
-
-### Backend
-- Python
-- FastAPI
-- SQLAlchemy
-- Pydantic
-- Alembic
-- pytest
-
-### Banco
-- PostgreSQL
-
-### Frontend
-- React
-- Vite
-- JavaScript
-
-### Desenvolvimento
-- Git
-- GitHub
-- VS Code
+O banco também protege regras como isolamento por empresa, tipos de valores, opções pertencentes ao campo correto, campos inativos e recategorização de itens com valores personalizados.
 
 ---
 
-## 🧪 Testes
+## 🔄 Inventário
+
+O inventário compara saldo do sistema e contagem física.
+
+Exemplo:
+
+```text
+Saldo do sistema: 12.5
+Contagem física:   12
+Diferença:         -0.5
+```
+
+Resultado:
+
+```text
+AJUSTE_SAIDA 0.5
+```
+
+O saldo não é alterado silenciosamente.
+
+A conclusão do inventário deve gerar os ajustes de forma atômica.
+
+---
+
+## 🧪 Testes e Gates
 
 A estratégia inclui:
 
@@ -262,48 +346,49 @@ API tests
 end-to-end tests
 ```
 
-Casos críticos:
+### Gate A — Banco
 
-- mistura de dados entre empresas;
-- movimentações inválidas;
-- saída maior que o saldo;
-- campos personalizados com tipos incorretos;
-- opções pertencentes ao campo errado;
+O Gate A do banco está **verde**.
+
+Foram validados em banco limpo:
+
+- CORE isoladamente;
+- CORE + CUSTOM;
+- constraints;
+- triggers;
+- views;
+- isolamento multiempresa;
+- cálculo de saldo;
 - inventário e ajustes;
-- concorrência em movimentações.
+- regras de integração do CUSTOM.
 
----
+A suíte automatizada está em:
 
-## 👥 Desenvolvimento em equipe
+```text
+tests/database/run_gate_a.sql
+```
 
-O backend foi dividido por risco e complexidade.
+Execução:
 
-### Domain / Integration
-Responsável por:
-- arquitetura;
-- integrações;
-- movimentações;
-- inventário;
-- transações;
-- multiempresa;
-- módulo CUSTOM avançado;
-- testes de integração.
+```text
+psql -U postgres -d estoque_flex_test -v ON_ERROR_STOP=1 -f tests/database/run_gate_a.sql
+```
 
-### CORE
-Responsável por:
-- empresas;
-- unidades;
-- itens;
-- CRUDs principais;
-- consultas simples.
+Resultado esperado:
 
-### Backend Apprentice
-Responsável inicialmente por:
-- health check;
-- schemas Pydantic;
-- testes simples;
-- rotas de baixo risco;
-- posteriormente um CRUD simples seguindo um módulo de referência.
+```text
+GATE A: TODOS OS TESTES PASSARAM
+```
+
+### Próximo gate
+
+O próximo objetivo é o **Gate B — Backend**:
+
+```text
+GET /api/v1/health → 200
+SELECT 1 → sucesso
+pytest → verde
+```
 
 ---
 
@@ -331,53 +416,93 @@ Service
 PostgreSQL
 ```
 
----
-
-## 🔄 Inventário
-
-O inventário compara saldo do sistema e contagem física.
-
-Exemplo:
-
-```text
-Saldo do sistema: 12.5
-Contagem física:   12
-Diferença:         -0.5
-```
-
-Resultado:
-
-```text
-AJUSTE_SAIDA 0.5
-```
-
-O saldo não é alterado silenciosamente.
+O banco já possui proteções importantes contra relações entre empresas diferentes. A camada de API ainda deverá aplicar o isolamento por usuário/empresa quando a autenticação for implementada.
 
 ---
 
-## 🚧 Status
+## 👤 Desenvolvimento solo
 
-> **Em desenvolvimento**
+O **Estoque Flex é desenvolvido integralmente por Gabriel**.
 
-### Banco
-- [x] Arquitetura CORE definida
-- [x] Arquitetura CUSTOM definida
-- [x] Scripts CUSTOM planejados
-- [ ] Testes automatizados do CUSTOM
-- [ ] Revisão do CORE real
-- [ ] Integração CORE + CUSTOM
+Não existe dependência técnica planejada de antigos integrantes para o avanço do projeto.
+
+Fluxo de desenvolvimento:
+
+```text
+entender a etapa
+→ decidir
+→ implementar
+→ executar
+→ testar
+→ explicar o resultado
+→ avançar
+```
+
+As partes críticas devem ser executadas e testadas antes de serem consideradas concluídas.
+
+---
+
+## 🛠️ Tecnologias
 
 ### Backend
-- [x] Arquitetura planejada
-- [x] Divisão de responsabilidades
-- [ ] Fundação FastAPI
+
+- Python
+- FastAPI
+- SQLAlchemy 2.x
+- Pydantic
+- Alembic
+- pytest
+
+### Banco
+
+- PostgreSQL
+
+### Frontend
+
+- React
+- Vite
+- JavaScript
+
+### Desenvolvimento
+
+- Git
+- GitHub
+- VS Code
+
+---
+
+## 🚧 Status atual
+
+> **Em desenvolvimento — Gate A do banco concluído; fundação do backend em andamento.**
+
+### Banco
+
+- [x] Arquitetura CORE definida
+- [x] Arquitetura CUSTOM definida
+- [x] CORE implementado e revisado
+- [x] CUSTOM 100–106 implementado
+- [x] Integração CORE + CUSTOM
+- [x] Testes automatizados do banco
+- [x] Gate A verde
+
+### Backend
+
+- [x] Arquitetura definida
+- [x] Esqueleto FastAPI inicial
+- [x] Endpoint `GET /api/v1/health` definido
+- [ ] Configuração da aplicação
+- [ ] Conexão SQLAlchemy/PostgreSQL
+- [ ] `SELECT 1`
+- [ ] pytest/TestClient
+- [ ] Tratamento inicial de erros
 - [ ] Autenticação
 - [ ] CRUDs
 - [ ] Movimentações
 - [ ] Inventário
-- [ ] Integração completa
+- [ ] API CUSTOM
 
 ### Frontend
+
 - [x] Stack definida
 - [ ] Interface
 - [ ] Integração REST
@@ -386,42 +511,44 @@ O saldo não é alterado silenciosamente.
 
 ---
 
-## 📚 Documentação
-
-A pasta `docs/` concentra planejamento e decisões técnicas.
-
-Documentos principais:
-
-```text
-PLANO_BANCO_ESTOQUE_FLEX.md
-ESTOQUE_FLEX_PLANO_MESTRE_V1.md
-GUIA_BACKEND_INICIANTE_ESTOQUE_FLEX.md
-```
-
----
-
 ## 🗺️ Roadmap
 
 ```text
+[CONCLUÍDO]
 Banco CORE + CUSTOM
         ↓
-Testes automatizados
+[CONCLUÍDO]
+Testes automatizados + Gate A
         ↓
-FastAPI + SQLAlchemy
+[ATUAL]
+Fundação FastAPI
         ↓
-Autenticação + CRUDs
+Auth + multiempresa
         ↓
-Movimentações + Saldo
+CRUD CORE
         ↓
-Inventário
+Movimentações + saldo
         ↓
-Integração CUSTOM
+API CUSTOM
         ↓
-Frontend
+Inventários
+        ↓
+Frontend React
         ↓
 E2E + Hardening
         ↓
 Deploy
+```
+
+Prioridade:
+
+```text
+integridade
+→ funcionamento
+→ testes
+→ integração
+→ interface
+→ refinamento
 ```
 
 ---
@@ -460,17 +587,6 @@ Possíveis evoluções:
 - integrações externas.
 
 ---
-
-## 📌 Prioridade atual
-
-```text
-integridade
-→ funcionamento
-→ testes
-→ integração
-→ interface
-→ refinamento
-```
 
 <p align="center">
   <strong>Estoque Flex</strong><br>

@@ -127,6 +127,75 @@ END;
 $$;
 
 -- ============================================================
+-- MOVIMENTO NEGATIVO DEVE FALHAR
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        INSERT INTO core.movimentacoes (
+            empresa_id,
+            item_id,
+            tipo,
+            quantidade
+        )
+        VALUES (
+            1,
+            1,
+            'ENTRADA',
+            -5
+        );
+
+    EXCEPTION
+        WHEN check_violation THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: movimento negativo foi aceito.';
+    END IF;
+END;
+$$;
+
+
+-- ============================================================
+-- TIPO DE MOVIMENTO DESCONHECIDO DEVE FALHAR
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        INSERT INTO core.movimentacoes (
+            empresa_id,
+            item_id,
+            tipo,
+            quantidade
+        )
+        VALUES (
+            1,
+            1,
+            'COMPRA',
+            1
+        );
+
+    EXCEPTION
+        WHEN check_violation THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: tipo de movimento desconhecido foi aceito.';
+    END IF;
+END;
+$$;
+
+-- ============================================================
 -- TESTE 4 - ITEM NAO PODE USAR UNIDADE DE OUTRA EMPRESA
 -- ============================================================
 
@@ -220,7 +289,10 @@ VALUES
     (1, 1, 'Cor', 'LISTA', TRUE),
     (1, 1, 'Modelo Inativo', 'TEXTO_CURTO', FALSE),
     (1, 1, 'Quantidade por caixa', 'INTEIRO', TRUE),
-    (2, 3, 'Marca B', 'TEXTO_CURTO', TRUE);
+    (2, 3, 'Marca B', 'TEXTO_CURTO', TRUE),
+    (1, 1, 'Preco', 'DINHEIRO', TRUE),
+    (1, 1, 'Disponivel', 'BOOLEANO', TRUE),
+    (1, 2, 'Validade', 'TEXTO_CURTO', TRUE);
 
 INSERT INTO custom.campo_opcoes (
     campo_id,
@@ -408,6 +480,282 @@ END;
 $$;
 
 -- ============================================================
+-- CATEGORIA EM EMPRESA INEXISTENTE
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        INSERT INTO custom.categorias (
+            empresa_id,
+            nome
+        )
+        VALUES (
+            999,
+            'Categoria Invalida'
+        );
+
+    EXCEPTION
+        WHEN foreign_key_violation THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: categoria em empresa inexistente foi aceita.';
+    END IF;
+END;
+$$;
+
+
+-- ============================================================
+-- ITEM E CATEGORIA DE EMPRESAS DIFERENTES
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        INSERT INTO custom.item_categorias (
+            item_id,
+            categoria_id,
+            empresa_id
+        )
+        VALUES (
+            3,
+            1,
+            2
+        );
+
+    EXCEPTION
+        WHEN raise_exception THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: item recebeu categoria de outra empresa.';
+    END IF;
+END;
+$$;
+
+
+-- ============================================================
+-- CAMPO EM CATEGORIA DE OUTRA EMPRESA
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        INSERT INTO custom.campos (
+            empresa_id,
+            categoria_id,
+            nome,
+            tipo_dado
+        )
+        VALUES (
+            2,
+            1,
+            'Campo Invalido',
+            'TEXTO_CURTO'
+        );
+
+    EXCEPTION
+        WHEN raise_exception THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: campo foi associado a categoria de outra empresa.';
+    END IF;
+END;
+$$;
+
+
+-- ============================================================
+-- CAMPO NAO-LISTA NAO RECEBE OPCAO
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        INSERT INTO custom.campo_opcoes (
+            campo_id,
+            valor
+        )
+        VALUES (
+            7,
+            'Invalida'
+        );
+
+    EXCEPTION
+        WHEN raise_exception THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: campo DINHEIRO recebeu opcao.';
+    END IF;
+END;
+$$;
+
+
+-- ============================================================
+-- DINHEIRO COM TIPO ERRADO
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        INSERT INTO custom.valores_item (
+            item_id,
+            campo_id,
+            valor_texto
+        )
+        VALUES (
+            1,
+            7,
+            '12.50'
+        );
+
+    EXCEPTION
+        WHEN raise_exception THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: DINHEIRO aceitou valor_texto.';
+    END IF;
+END;
+$$;
+
+INSERT INTO custom.valores_item (
+    item_id,
+    campo_id,
+    valor_monetario
+)
+VALUES (
+    1,
+    7,
+    12.50
+);
+
+
+-- ============================================================
+-- BOOLEANO COM TIPO ERRADO
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        INSERT INTO custom.valores_item (
+            item_id,
+            campo_id,
+            valor_texto
+        )
+        VALUES (
+            1,
+            8,
+            'true'
+        );
+
+    EXCEPTION
+        WHEN raise_exception THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: BOOLEANO aceitou texto.';
+    END IF;
+END;
+$$;
+
+INSERT INTO custom.valores_item (
+    item_id,
+    campo_id,
+    valor_booleano
+)
+VALUES (
+    1,
+    8,
+    TRUE
+);
+
+
+-- ============================================================
+-- CAMPO DE OUTRA CATEGORIA NAO PODE SER USADO PELO ITEM
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        INSERT INTO custom.valores_item (
+            item_id,
+            campo_id,
+            valor_texto
+        )
+        VALUES (
+            1,
+            9,
+            '2027'
+        );
+
+    EXCEPTION
+        WHEN raise_exception THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: item recebeu campo de outra categoria.';
+    END IF;
+END;
+$$;
+
+
+-- ============================================================
+-- CAMPO COM VALORES NAO PODE MUDAR TIPO
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        UPDATE custom.campos
+        SET tipo_dado = 'INTEIRO'
+        WHERE id = 1;
+
+    EXCEPTION
+        WHEN raise_exception THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: campo com valores teve o tipo alterado.';
+    END IF;
+END;
+$$;
+
+-- ============================================================
 -- TESTE 10 - INVENTARIO E DIFERENCA
 -- ============================================================
 
@@ -521,6 +869,134 @@ BEGIN
             'TESTE FALHOU: inventario nao foi concluido.';
     END IF;
 
+END;
+$$;
+
+-- ============================================================
+-- MOVIMENTACAO HISTORICA NAO PODE SER ALTERADA
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        UPDATE core.movimentacoes
+        SET quantidade = 999
+        WHERE id = 1;
+
+    EXCEPTION
+        WHEN raise_exception THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: movimentacao historica foi alterada.';
+    END IF;
+END;
+$$;
+
+
+-- ============================================================
+-- MOVIMENTACAO HISTORICA NAO PODE SER EXCLUIDA
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        DELETE FROM core.movimentacoes
+        WHERE id = 1;
+
+    EXCEPTION
+        WHEN raise_exception THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: movimentacao historica foi excluida.';
+    END IF;
+END;
+$$;
+
+
+-- ============================================================
+-- INVENTARIO CONCLUIDO NAO PODE SER ALTERADO
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        UPDATE core.inventarios
+        SET observacao = 'Alteracao indevida'
+        WHERE id = 1;
+
+    EXCEPTION
+        WHEN raise_exception THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: inventario concluido foi alterado.';
+    END IF;
+END;
+$$;
+
+
+-- ============================================================
+-- CONTAGEM DE INVENTARIO CONCLUIDO NAO PODE SER ALTERADA
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        UPDATE core.inventario_itens
+        SET quantidade_contada = 999
+        WHERE inventario_id = 1
+          AND item_id = 1;
+
+    EXCEPTION
+        WHEN raise_exception THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: contagem historica do inventario foi alterada.';
+    END IF;
+END;
+$$;
+
+
+-- ============================================================
+-- INVENTARIO NAO PODE SER EXCLUIDO
+-- ============================================================
+
+DO $$
+DECLARE
+    v_bloqueado BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        DELETE FROM core.inventarios
+        WHERE id = 1;
+
+    EXCEPTION
+        WHEN raise_exception THEN
+            v_bloqueado := TRUE;
+    END;
+
+    IF NOT v_bloqueado THEN
+        RAISE EXCEPTION
+            'TESTE FALHOU: inventario historico foi excluido.';
+    END IF;
 END;
 $$;
 

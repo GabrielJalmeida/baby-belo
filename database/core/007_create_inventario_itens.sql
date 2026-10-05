@@ -55,3 +55,40 @@ CREATE TABLE core.inventario_itens (
 
 CREATE INDEX idx_inventario_itens_item
     ON core.inventario_itens (item_id);
+
+-- ============================================================
+-- PROTEGER ITENS DE INVENTARIO HISTORICO
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION core.fn_proteger_item_inventario_historico()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_status VARCHAR(20);
+BEGIN
+
+    SELECT status
+    INTO v_status
+    FROM core.inventarios
+    WHERE id = OLD.inventario_id
+      AND empresa_id = OLD.empresa_id;
+
+    IF v_status <> 'ABERTO' THEN
+        RAISE EXCEPTION
+            'Itens de inventario concluido ou cancelado nao podem ser alterados ou excluidos.';
+    END IF;
+
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_proteger_item_inventario_historico
+BEFORE UPDATE OR DELETE
+ON core.inventario_itens
+FOR EACH ROW
+EXECUTE FUNCTION core.fn_proteger_item_inventario_historico();

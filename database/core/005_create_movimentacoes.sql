@@ -88,3 +88,23 @@ BEFORE UPDATE OF unidade_id
 ON core.itens
 FOR EACH ROW
 EXECUTE FUNCTION core.fn_bloquear_troca_unidade_item();
+
+-- ============================================================
+-- PROTEGER HISTORICO DE MOVIMENTACOES
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION core.fn_proteger_movimentacao_historica()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RAISE EXCEPTION
+        'Movimentacoes historicas nao podem ser alteradas ou excluidas. Registre um movimento compensatorio.';
+END;
+$$;
+
+CREATE TRIGGER trg_proteger_movimentacao_historica
+BEFORE UPDATE OR DELETE
+ON core.movimentacoes
+FOR EACH ROW
+EXECUTE FUNCTION core.fn_proteger_movimentacao_historica();
