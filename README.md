@@ -420,11 +420,7 @@ O banco já possui proteções importantes contra relações entre empresas dife
 
 ---
 
-## 👤 Desenvolvimento solo
-
-O **Estoque Flex é desenvolvido integralmente por Gabriel**.
-
-Não existe dependência técnica planejada de antigos integrantes para o avanço do projeto.
+## 👤 Desenvolvimento
 
 Fluxo de desenvolvimento:
 
