@@ -17,6 +17,12 @@
 \ir core/008_create_view_saldos.sql
 \ir core/009_create_view_estoque_baixo.sql
 
+\echo 'Aplicando AUTH...'
+
+\ir auth/110_create_auth_schema.sql
+\ir auth/111_create_usuarios.sql
+\ir auth/112_create_empresa_usuarios.sql
+
 \echo 'Aplicando CUSTOM...'
 
 \ir custom/100_create_custom_schema.sql
