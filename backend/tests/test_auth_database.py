@@ -104,11 +104,27 @@ def test_valid_user_company_relationship():
                 },
             )
 
-            transaction.commit()
+            result = connection.execute(
+                text(
+                    """
+                    SELECT empresa_id, usuario_id, papel
+                    FROM auth.empresa_usuarios
+                    WHERE empresa_id = :empresa_id
+                      AND usuario_id = :usuario_id
+                    """
+                ),
+                {
+                    "empresa_id": company_id,
+                    "usuario_id": user_id,
+                },
+            ).one()
 
-        except Exception:
+            assert result.empresa_id == company_id
+            assert result.usuario_id == user_id
+            assert result.papel == "OWNER"
+
+        finally:
             transaction.rollback()
-            raise
 
 
 def test_invalid_role_is_rejected():

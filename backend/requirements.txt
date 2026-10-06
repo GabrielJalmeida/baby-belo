@@ -6,3 +6,5 @@ pydantic-settings
 alembic
 pytest
 httpx2
+pwdlib[argon2]
+pyjwt
