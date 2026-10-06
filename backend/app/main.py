@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 
+from app.health.router import router as health_router
+from app.shared.config import settings
+
 
 app = FastAPI(
-    title="Estoque Flex API",
-    version="0.1.0",
+    title=settings.app_name,
+    version=settings.app_version,
 )
 
-
-@app.get("/api/v1/health", tags=["health"])
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+app.include_router(health_router)
