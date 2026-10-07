@@ -8,3 +8,5 @@ pytest
 httpx2
 pwdlib[argon2]
 pyjwt
+python-multipart
+email-validator

@@ -1,18 +1,12 @@
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 
 from app.shared.config import settings
 
-
 password_hash = PasswordHash.recommended()
-
-oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/api/v1/auth/login",
-)
 
 
 def get_password_hash(password: str) -> str:
