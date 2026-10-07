@@ -8,20 +8,20 @@ from app.shared.dependencies import get_current_user
 
 
 def get_current_company_membership(
-    company_id: int | None = Header(
+    x_company_id: int | None = Header(
         default=None,
         alias="X-Company-ID",
     ),
     current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> EmpresaUsuario:
-    if company_id is None:
+    if x_company_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="X-Company-ID é obrigatório.",
         )
 
-    if company_id <= 0:
+    if x_company_id <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="X-Company-ID deve ser um número positivo.",
@@ -30,7 +30,7 @@ def get_current_company_membership(
     membership = CompanyAccessService.get_active_membership(
         db=db,
         user_id=current_user.id,
-        company_id=company_id,
+        company_id=x_company_id,
     )
 
     if membership is None:
