@@ -1,4 +1,5 @@
 from uuid import uuid4
+import pytest
 
 from fastapi.testclient import TestClient
 
@@ -218,6 +219,152 @@ def test_owner_can_deactivate_company():
         db.refresh(company)
 
         assert company.ativo is False
+
+        cleanup(db, user, company, membership)
+
+    finally:
+        db.close()
+
+def test_owner_can_reactivate_company():
+    db = SessionLocal()
+
+    try:
+        user, company, membership = create_user_and_company(db)
+        token = create_access_token(subject=str(user.id))
+
+        deactivate_response = client.patch(
+            f"/api/v1/empresas/{company.id}",
+            json={
+                "ativo": False,
+            },
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Company-ID": str(company.id),
+            },
+        )
+
+        assert deactivate_response.status_code == 200
+        assert deactivate_response.json()["ativo"] is False
+
+        reactivate_response = client.patch(
+            f"/api/v1/empresas/{company.id}",
+            json={
+                "ativo": True,
+            },
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Company-ID": str(company.id),
+            },
+        )
+
+        assert reactivate_response.status_code == 200
+        assert reactivate_response.json()["ativo"] is True
+
+        db.refresh(company)
+
+        assert company.ativo is True
+
+        cleanup(db, user, company, membership)
+
+    finally:
+        db.close()
+
+
+def test_viewer_cannot_reactivate_company():
+    db = SessionLocal()
+
+    try:
+        user, company, membership = create_user_and_company(
+            db,
+            role="VIEWER",
+        )
+
+        company.ativo = False
+        db.commit()
+
+        token = create_access_token(subject=str(user.id))
+
+        response = client.patch(
+            f"/api/v1/empresas/{company.id}",
+            json={
+                "ativo": True,
+            },
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Company-ID": str(company.id),
+            },
+        )
+
+        assert response.status_code == 403
+
+        db.refresh(company)
+
+        assert company.ativo is False
+
+        cleanup(db, user, company, membership)
+
+    finally:
+        db.close()
+
+
+def test_patch_empty_payload_does_not_change_company():
+    db = SessionLocal()
+
+    try:
+        user, company, membership = create_user_and_company(db)
+        original_name = company.nome
+        original_active = company.ativo
+
+        token = create_access_token(subject=str(user.id))
+
+        response = client.patch(
+            f"/api/v1/empresas/{company.id}",
+            json={},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Company-ID": str(company.id),
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["nome"] == original_name
+        assert response.json()["ativo"] is original_active
+
+        db.refresh(company)
+
+        assert company.nome == original_name
+        assert company.ativo is original_active
+
+        cleanup(db, user, company, membership)
+
+    finally:
+        db.close()
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"nome": None},
+        {"ativo": None},
+    ],
+)
+def test_patch_rejects_explicit_null_values(payload):
+    db = SessionLocal()
+
+    try:
+        user, company, membership = create_user_and_company(db)
+        token = create_access_token(subject=str(user.id))
+
+        response = client.patch(
+            f"/api/v1/empresas/{company.id}",
+            json=payload,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Company-ID": str(company.id),
+            },
+        )
+
+        assert response.status_code == 422
 
         cleanup(db, user, company, membership)
 

@@ -27,3 +27,20 @@ class CompanyAccessService:
         )
 
         return db.scalar(statement)
+
+    @staticmethod
+    def get_active_membership_for_management(
+        db: Session,
+        user_id: int,
+        company_id: int,
+    ) -> EmpresaUsuario | None:
+        statement = (
+            select(EmpresaUsuario)
+            .where(
+                EmpresaUsuario.usuario_id == user_id,
+                EmpresaUsuario.empresa_id == company_id,
+                EmpresaUsuario.ativo.is_(True),
+            )
+        )
+
+        return db.scalar(statement)

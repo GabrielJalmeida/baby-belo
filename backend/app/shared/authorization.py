@@ -3,13 +3,21 @@ from collections.abc import Callable
 from fastapi import Depends, HTTPException, status
 
 from app.auth.models import EmpresaUsuario
-from app.shared.company_dependencies import get_current_company_membership
+from app.shared.company_dependencies import (
+    get_current_company_membership,
+)
+from app.shared.company_dependencies import (
+    get_current_company_membership_for_management,
+)
 
 
 VALID_ROLES = {"OWNER", "OPERATOR", "VIEWER"}
 
 
-def require_role(*allowed_roles: str) -> Callable:
+def require_role(
+    *allowed_roles: str,
+    membership_dependency: Callable = get_current_company_membership,
+) -> Callable:
     normalized_roles = {
         role.strip().upper()
         for role in allowed_roles
@@ -29,7 +37,7 @@ def require_role(*allowed_roles: str) -> Callable:
 
     def role_dependency(
         membership: EmpresaUsuario = Depends(
-            get_current_company_membership
+            membership_dependency
         ),
     ) -> EmpresaUsuario:
         if membership.papel not in normalized_roles:

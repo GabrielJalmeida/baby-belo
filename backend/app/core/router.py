@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.auth.models import EmpresaUsuario, Usuario
+from app.application.company_service import CompanyApplicationService
 from app.core.schemas import (
     EmpresaCreate,
     EmpresaResponse,
@@ -9,7 +9,10 @@ from app.core.schemas import (
 )
 from app.core.service import EmpresaService
 from app.shared.authorization import require_role
-from app.shared.company_dependencies import get_current_company_membership
+from app.shared.company_dependencies import (
+    get_current_company_membership,
+    get_current_company_membership_for_management,
+)
 from app.shared.database import get_db
 from app.shared.dependencies import get_current_user
 
@@ -27,10 +30,10 @@ router = APIRouter(
 )
 def create_company(
     data: EmpresaCreate,
-    current_user: Usuario = Depends(get_current_user),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> EmpresaResponse:
-    company = EmpresaService.create_company(
+    company = CompanyApplicationService.create_company(
         db=db,
         user_id=current_user.id,
         nome=data.nome,
@@ -47,10 +50,10 @@ def create_company(
     response_model=list[EmpresaResponse],
 )
 def list_companies(
-    current_user: Usuario = Depends(get_current_user),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[EmpresaResponse]:
-    return EmpresaService.list_user_companies(
+    return CompanyApplicationService.list_user_companies(
         db=db,
         user_id=current_user.id,
     )
@@ -62,7 +65,7 @@ def list_companies(
 )
 def get_company(
     company_id: int,
-    membership: EmpresaUsuario = Depends(
+    membership=Depends(
         get_current_company_membership,
     ),
     db: Session = Depends(get_db),
@@ -94,8 +97,11 @@ def get_company(
 def update_company(
     company_id: int,
     data: EmpresaUpdate,
-    membership: EmpresaUsuario = Depends(
-        require_role("OWNER"),
+    membership=Depends(
+        require_role(
+            "OWNER",
+            membership_dependency=get_current_company_membership_for_management,
+        )
     ),
     db: Session = Depends(get_db),
 ) -> EmpresaResponse:
@@ -108,8 +114,7 @@ def update_company(
     company = EmpresaService.update_company(
         db=db,
         company_id=company_id,
-        nome=data.nome,
-        ativo=data.ativo,
+        changes=data.model_dump(exclude_unset=True),
     )
 
     if company is None:

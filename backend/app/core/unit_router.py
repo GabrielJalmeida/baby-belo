@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.auth.models import EmpresaUsuario
 from app.core.unit_schemas import (
     UnidadeCreate,
     UnidadeResponse,
@@ -26,7 +25,7 @@ router = APIRouter(
 )
 def create_unit(
     data: UnidadeCreate,
-    membership: EmpresaUsuario = Depends(
+    membership=Depends(
         require_role("OWNER", "OPERATOR"),
     ),
     db: Session = Depends(get_db),
@@ -50,7 +49,7 @@ def create_unit(
     response_model=list[UnidadeResponse],
 )
 def list_units(
-    membership: EmpresaUsuario = Depends(
+    membership=Depends(
         get_current_company_membership,
     ),
     db: Session = Depends(get_db),
@@ -67,7 +66,7 @@ def list_units(
 )
 def get_unit(
     unit_id: int,
-    membership: EmpresaUsuario = Depends(
+    membership=Depends(
         get_current_company_membership,
     ),
     db: Session = Depends(get_db),
@@ -94,7 +93,7 @@ def get_unit(
 def update_unit(
     unit_id: int,
     data: UnidadeUpdate,
-    membership: EmpresaUsuario = Depends(
+    membership=Depends(
         require_role("OWNER", "OPERATOR"),
     ),
     db: Session = Depends(get_db),
