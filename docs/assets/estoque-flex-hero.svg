@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">Estoque Flex — controle confiável, estrutura flexível</title>
+  <desc id="desc">Banner escuro em azul-petróleo com gradientes turquesa e âmbar, elementos de interface e barras abstratas que representam o fluxo de estoque.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#071321"/><stop offset=".55" stop-color="#0c2638"/><stop offset="1" stop-color="#103c42"/></linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#64f0d0"/><stop offset="1" stop-color="#28b8c4"/></linearGradient>
+    <linearGradient id="warm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd479"/><stop offset="1" stop-color="#f59e3d"/></linearGradient>
+    <radialGradient id="glow" cx="78%" cy="44%" r="62%"><stop offset="0" stop-color="#2dd4bf" stop-opacity=".22"/><stop offset="1" stop-color="#2dd4bf" stop-opacity="0"/></radialGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#bdeee8" stroke-opacity=".08" stroke-width="1"/></pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#020812" flood-opacity=".38"/></filter>
+  </defs>
+  <rect width="1200" height="360" rx="26" fill="url(#bg)"/>
+  <rect width="1200" height="360" rx="26" fill="url(#grid)"/>
+  <rect width="1200" height="360" rx="26" fill="url(#glow)"/>
+  <path d="M0 285C180 235 250 350 435 290S750 215 930 270s190 17 270-10V360H0Z" fill="#06111d" opacity=".34"/>
+  <path d="M695 0v360" stroke="#c9fff3" stroke-opacity=".10"/>
+  <g transform="translate(72 64)">
+    <rect x="0" y="0" width="48" height="5" rx="2.5" fill="url(#accent)"/>
+    <text x="0" y="42" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" letter-spacing="3.6" fill="#8fe8d8">INVENTORY MANAGEMENT</text>
+    <text x="-2" y="112" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="61" font-weight="800" letter-spacing="-2.4" fill="#f4fbff">Estoque <tspan fill="url(#accent)">Flex</tspan></text>
+    <text x="2" y="151" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="400" fill="#c0d5e0">Controle confiável. Estrutura flexível.</text>
+    <g transform="translate(2 186)">
+      <rect x="0" y="0" width="93" height="31" rx="15.5" fill="#ffffff" fill-opacity=".07" stroke="#b5eee4" stroke-opacity=".22"/><circle cx="16" cy="15.5" r="4" fill="#62e7cf"/><text x="28" y="20" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing=".8" fill="#e7fbf7">CORE</text>
+      <rect x="104" y="0" width="108" height="31" rx="15.5" fill="#ffffff" fill-opacity=".07" stroke="#b5eee4" stroke-opacity=".22"/><circle cx="120" cy="15.5" r="4" fill="#f8c66c"/><text x="132" y="20" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing=".8" fill="#fff4db">CUSTOM</text>
+      <rect x="223" y="0" width="88" height="31" rx="15.5" fill="#ffffff" fill-opacity=".07" stroke="#b5eee4" stroke-opacity=".22"/><circle cx="239" cy="15.5" r="4" fill="#7bb3ff"/><text x="251" y="20" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700" letter-spacing=".8" fill="#e8f2ff">AUTH</text>
+    </g>
+  </g>
+  <g transform="translate(746 47)" filter="url(#shadow)">
+    <rect x="15" y="10" width="365" height="258" rx="20" fill="#0c1a28" fill-opacity=".78" stroke="#b8e9e6" stroke-opacity=".22"/>
+    <rect x="36" y="31" width="323" height="54" rx="12" fill="#ffffff" fill-opacity=".055"/>
+    <circle cx="56" cy="58" r="6" fill="#62e7cf"/>
+    <text x="72" y="54" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="10" font-weight="700" letter-spacing="1.7" fill="#8bb1c3">MODELO OPERACIONAL</text>
+    <text x="72" y="72" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" fill="#f3fbff">Movimentações rastreáveis</text>
+    <rect x="36" y="103" width="151" height="72" rx="12" fill="#163345" stroke="#4edcc5" stroke-opacity=".3"/>
+    <text x="51" y="124" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="10" font-weight="600" fill="#9ac8d0">ESTRUTURA</text>
+    <text x="51" y="155" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="27" font-weight="800" fill="#f4fbff">CORE</text>
+    <rect x="200" y="103" width="159" height="72" rx="12" fill="#302b22" stroke="#f7c56b" stroke-opacity=".35"/>
+    <text x="215" y="124" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="10" font-weight="600" fill="#e3c795">FLEXIBILIDADE</text>
+    <text x="215" y="155" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="27" font-weight="800" fill="#fff4db">CUSTOM</text>
+    <g transform="translate(38 194)">
+      <path d="M0 55H320" stroke="#d6f5ee" stroke-opacity=".12"/>
+      <rect x="0" y="33" width="22" height="22" rx="4" fill="#278e96"/><rect x="32" y="20" width="22" height="35" rx="4" fill="#32b5ad"/><rect x="64" y="27" width="22" height="28" rx="4" fill="#238e96"/><rect x="96" y="7" width="22" height="48" rx="4" fill="#5bdfc6"/><rect x="128" y="15" width="22" height="40" rx="4" fill="#32b5ad"/><rect x="160" y="0" width="22" height="55" rx="4" fill="url(#warm)"/><rect x="192" y="22" width="22" height="33" rx="4" fill="#32b5ad"/><rect x="224" y="11" width="22" height="44" rx="4" fill="#40c9b6"/><rect x="256" y="16" width="22" height="39" rx="4" fill="#258f98"/><rect x="288" y="3" width="22" height="52" rx="4" fill="#5bdfc6"/>
+    </g>
+  </g>
+  <circle cx="1092" cy="61" r="4" fill="#ffd078"/><circle cx="1110" cy="61" r="4" fill="#5bdfc6" opacity=".85"/><circle cx="1128" cy="61" r="4" fill="#7bb3ff" opacity=".85"/>
+  <path d="M695 42l-9 9 9 9M695 42l9 9-9 9" fill="none" stroke="#6de7d2" stroke-opacity=".5" stroke-width="1.5"/>
+</svg>
