@@ -139,6 +139,8 @@ class MovimentacaoService:
         db: Session,
         empresa_id: int,
         item_id: int,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[Movimentacao] | None:
         item = MovimentacaoService._get_item(
             db=db,
@@ -159,6 +161,8 @@ class MovimentacaoService:
                 Movimentacao.ocorrida_em.desc(),
                 Movimentacao.id.desc(),
             )
+            .limit(limit)
+            .offset(offset)
         )
 
         return list(db.scalars(statement).all())

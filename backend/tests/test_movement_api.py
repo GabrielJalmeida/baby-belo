@@ -289,3 +289,68 @@ def test_other_company_item_is_hidden_from_balance_and_history():
         )
 
         assert movement_response.status_code == 404
+
+def test_list_item_movements_supports_limit_and_offset():
+    with api_context() as context:
+        history_url = (
+            f"/api/v1/itens/{context['item_id']}/movimentacoes"
+        )
+
+        for _ in range(5):
+            response = client.post(
+                "/api/v1/movimentacoes",
+                json={
+                    "item_id": context["item_id"],
+                    "tipo": "ENTRADA",
+                    "quantidade": "1.0000",
+                },
+                headers=context["headers"],
+            )
+
+            assert response.status_code == 201
+
+        full_response = client.get(
+            history_url,
+            headers=context["headers"],
+        )
+
+        assert full_response.status_code == 200
+
+        full_ids = [
+            movement["id"]
+            for movement in full_response.json()
+        ]
+
+        assert len(full_ids) == 5
+
+        page_response = client.get(
+            f"{history_url}?limit=2&offset=1",
+            headers=context["headers"],
+        )
+
+        assert page_response.status_code == 200
+        assert [
+            movement["id"]
+            for movement in page_response.json()
+        ] == full_ids[1:3]
+
+
+def test_list_item_movements_rejects_invalid_pagination():
+    with api_context() as context:
+        history_url = (
+            f"/api/v1/itens/{context['item_id']}/movimentacoes"
+        )
+
+        invalid_queries = [
+            "limit=0",
+            "limit=101",
+            "offset=-1",
+        ]
+
+        for query in invalid_queries:
+            response = client.get(
+                f"{history_url}?{query}",
+                headers=context["headers"],
+            )
+
+            assert response.status_code == 422, query

@@ -1,12 +1,10 @@
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
 from app.core.inventory_service import (
     ItemBloqueadoPorInventarioAbertoError,
 )
-
 from app.core.movement_schemas import (
     MovimentacaoCreate,
     MovimentacaoResponse,
@@ -132,6 +130,8 @@ def create_movement(
 )
 def list_item_movements(
     item_id: int,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     membership=Depends(get_current_company_membership),
     db: Session = Depends(get_db),
 ) -> list[MovimentacaoResponse]:
@@ -139,6 +139,8 @@ def list_item_movements(
         db=db,
         empresa_id=membership.empresa_id,
         item_id=item_id,
+        limit=limit,
+        offset=offset,
     )
 
     if movements is None:
