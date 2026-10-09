@@ -463,3 +463,87 @@ def test_patch_unit_rejects_null_for_non_nullable_fields(field):
 
     finally:
         db.close()
+
+
+def test_list_units_supports_limit_and_offset():
+    db = SessionLocal()
+    user = company = membership = None
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+
+        units = [
+            Unidade(
+                empresa_id=company.id,
+                nome=f"Unidade {number}",
+                simbolo="UN",
+                permite_decimal=False,
+                ativo=True,
+            )
+            for number in range(5)
+        ]
+
+        db.add_all(units)
+        db.commit()
+
+        token = create_access_token(subject=str(user.id))
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "X-Company-ID": str(company.id),
+        }
+
+        full_response = client.get(
+            "/api/v1/unidades",
+            headers=headers,
+        )
+
+        assert full_response.status_code == 200
+        full_ids = [unit["id"] for unit in full_response.json()]
+        assert len(full_ids) == 5
+
+        page_response = client.get(
+            "/api/v1/unidades?limit=2&offset=1",
+            headers=headers,
+        )
+
+        assert page_response.status_code == 200
+        page_ids = [unit["id"] for unit in page_response.json()]
+        assert page_ids == full_ids[1:3]
+
+    finally:
+        if user is not None and company is not None and membership is not None:
+            cleanup(db, user, company, membership)
+        db.close()
+
+
+def test_list_units_rejects_invalid_pagination_parameters():
+    db = SessionLocal()
+    user = company = membership = None
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+
+        token = create_access_token(subject=str(user.id))
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "X-Company-ID": str(company.id),
+        }
+
+        invalid_queries = [
+            "limit=0",
+            "limit=101",
+            "offset=-1",
+        ]
+
+        for query in invalid_queries:
+            response = client.get(
+                f"/api/v1/unidades?{query}",
+                headers=headers,
+            )
+
+            assert response.status_code == 422, query
+
+    finally:
+        if user is not None and company is not None and membership is not None:
+            cleanup(db, user, company, membership)
+        db.close()

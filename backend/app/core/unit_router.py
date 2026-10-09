@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.unit_schemas import (
@@ -43,12 +43,13 @@ def create_unit(
 
     return unit
 
-
 @router.get(
     "",
     response_model=list[UnidadeResponse],
 )
 def list_units(
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     membership=Depends(
         get_current_company_membership,
     ),
@@ -57,7 +58,10 @@ def list_units(
     return UnidadeService.list_units(
         db=db,
         empresa_id=membership.empresa_id,
+        limit=limit,
+        offset=offset,
     )
+
 
 
 @router.get(

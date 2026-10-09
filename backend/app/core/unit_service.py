@@ -30,6 +30,8 @@ class UnidadeService:
     def list_units(
         db: Session,
         empresa_id: int,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[Unidade]:
         statement = (
             select(Unidade)
@@ -38,6 +40,8 @@ class UnidadeService:
                 Unidade.ativo.is_(True),
             )
             .order_by(Unidade.id)
+            .limit(limit)
+            .offset(offset)
         )
 
         return list(db.scalars(statement).all())
