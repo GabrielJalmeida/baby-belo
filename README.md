@@ -1,1396 +1,283 @@
-# 📦 Estoque Flex
-
 <p align="center">
-  <strong>Sistema web de estoque flexível, configurável e multiempresa.</strong>
+  <img src="docs/assets/estoque-flex-hero.svg" alt="Estoque Flex — controle confiável, estrutura flexível" width="100%" />
 </p>
 
 <p align="center">
-  Controle de estoque com estrutura fixa para regras críticas e uma camada configurável para diferentes tipos de negócio.
+  <strong>Controle de estoque confiável, com estrutura preparada para diferentes negócios.</strong><br />
+  API modular · Multiempresa · Campos personalizados
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-FastAPI-3776AB?style=for-the-badge&logo=fastapi&logoColor=white" alt="Python e FastAPI" />
+  <img src="https://img.shields.io/badge/PostgreSQL-database-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/Testes-362%20passed-22C55E?style=for-the-badge&logo=pytest&logoColor=white" alt="362 testes aprovados na última validação" />
+  <img src="https://img.shields.io/badge/Status-Backend%20em%20hardening-F59E0B?style=for-the-badge&logo=github&logoColor=white" alt="Backend em hardening" />
+</p>
+
+<p align="center">
+  <a href="#-visão-geral">Visão geral</a> ·
+  <a href="#-arquitetura">Arquitetura</a> ·
+  <a href="#-capacidades-implementadas">Capacidades</a> ·
+  <a href="#-executar-localmente">Executar localmente</a> ·
+  <a href="#-roadmap">Roadmap</a>
 </p>
 
 ---
 
-## ✨ Sobre o projeto
+## ✦ Visão geral
+
+O **Estoque Flex** é um sistema web de gerenciamento de estoque pensado para pequenos negócios que precisam de rastreabilidade sem abrir mão da flexibilidade. O núcleo mantém as regras críticas do estoque; uma camada configurável permite que cada empresa descreva seus próprios produtos sem transformar o banco em uma coleção de colunas específicas para cada negócio.
+
+> **CORE controla o estoque. CUSTOM descreve o estoque. AUTH protege o acesso.**
+
+O backend já reúne as APIs de empresas, unidades, itens, movimentações, consultas de estoque, inventários e personalização de itens. O próximo marco é a revisão de hardening; o frontend e os testes E2E ainda estão pendentes.
+
+## ✨ Capacidades implementadas
+
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>📦 CORE</h3>
+      <p>Regras operacionais e dados estruturados.</p>
+      <ul>
+        <li>Empresas e unidades de medida</li>
+        <li>Cadastro e consulta de itens</li>
+        <li>Registro de movimentações</li>
+        <li>Consulta de saldo e estoque baixo</li>
+        <li>Inventários e itens de inventário</li>
+      </ul>
+    </td>
+    <td width="33%" valign="top">
+      <h3>🧩 CUSTOM</h3>
+      <p>Personalização sem alterar o núcleo.</p>
+      <ul>
+        <li>Categorias de itens</li>
+        <li>Campos personalizados por categoria</li>
+        <li>Opções para campos do tipo lista</li>
+        <li>Valores personalizados por item</li>
+        <li>Associação de itens a categorias</li>
+      </ul>
+    </td>
+    <td width="33%" valign="top">
+      <h3>🔐 AUTH</h3>
+      <p>Identidade, contexto e permissões.</p>
+      <ul>
+        <li>Login com JWT</li>
+        <li>Endpoint de usuário atual</li>
+        <li>Contexto por <code>X-Company-ID</code></li>
+        <li>Papéis OWNER, OPERATOR e VIEWER</li>
+        <li>Isolamento entre empresas</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+## 🧭 Arquitetura
+
+O backend segue uma arquitetura de **monólito modular**: módulos separados por domínio, uma API HTTP clara e uma camada de aplicação para coordenar operações que atravessam módulos.
+
+```mermaid
+flowchart TD
+    CLIENT[Cliente HTTP] --> ROUTER[FastAPI · Routers]
+    ROUTER --> SCHEMA[Pydantic · Schemas]
+    SCHEMA --> SERVICE[Services · Regras de negócio]
+    SERVICE --> ORM[SQLAlchemy 2.x]
+    ORM --> DB[(PostgreSQL)]
+```
+
+### Dependências entre módulos
+
+```mermaid
+flowchart BT
+    CUSTOM[CUSTOM] --> CORE[CORE]
+    AUTH[AUTH] --> CORE
+    APP[APPLICATION · orquestração] --> CORE
+    APP --> AUTH
+    CORE --> DB[(PostgreSQL)]
+    AUTH --> DB
+    CUSTOM --> DB
+```
+
+A direção é intencional: **CORE não depende de AUTH nem de CUSTOM**. Operações que exigem coordenação entre domínios ficam na camada `application`, reduzindo o acoplamento e preservando as regras do núcleo.
+
+### Princípios de domínio
+
+- **Saldo rastreável:** o histórico de movimentações é a fonte de verdade; o saldo não é um campo manual editável no item.
+- **Precisão:** quantidades são modeladas para suportar `NUMERIC(18,4)` no banco.
+- **Histórico preservado:** correções operacionais devem ser rastreáveis; não se apagam movimentações para esconder erros.
+- **Multiempresa:** consultas e operações devem respeitar o contexto da empresa e validar as relações entre registros.
+- **Saldo negativo:** bloqueado por padrão, conforme as regras do domínio.
+- **CUSTOM sem acoplamento inverso:** características de negócio ficam na camada configurável, não no CORE.
+
+## 🧪 Qualidade e status atual
+
+<p>
+  <img src="https://img.shields.io/badge/Gate%20A-Banco%20validado-16A34A?style=flat-square" alt="Gate A concluído" />
+  <img src="https://img.shields.io/badge/API%20CORE-Implementada-16A34A?style=flat-square" alt="API CORE implementada" />
+  <img src="https://img.shields.io/badge/API%20CUSTOM-Implementada-16A34A?style=flat-square" alt="API CUSTOM implementada" />
+  <img src="https://img.shields.io/badge/Frontend-Pendente-64748B?style=flat-square" alt="Frontend pendente" />
+</p>
+
+| Etapa | Estado | Observação |
+|---|---|---|
+| Gate A — banco de dados | ✅ Concluído | Scripts SQL CORE, AUTH e CUSTOM versionados. |
+| Fundação do backend | ✅ Concluída | FastAPI, configuração, banco, segurança e testes. |
+| AUTH e multiempresa | ✅ Implementados | JWT, usuário atual, membership, papéis e contexto empresarial. |
+| APIs CORE | ✅ Implementadas | Empresas, unidades, itens, movimentações, estoque e inventário. |
+| API CUSTOM | ✅ Implementada | Categorias, campos, opções, valores e associação com itens. |
+| Suíte de testes | ✅ 362 aprovados | Última execução local registrada no checkpoint `e18bc18`. |
+| Hardening consolidado | 🟡 Próxima etapa | Revisar segurança, consistência, concorrência, erros e qualidade. |
+| Frontend React/Vite | ⏳ Pendente | Interface ainda não integrada ao backend. |
+| Testes E2E | ⏳ Pendente | Validar os principais fluxos ponta a ponta. |
+| Deploy | ⏳ Pendente | Após hardening, frontend e validação E2E. |
 
-O **Estoque Flex** é um sistema web de gerenciamento de estoque desenvolvido para pequenos negócios que precisam de controle confiável sem perder flexibilidade.
+> **Importante:** APIs implementadas e testes aprovados não significam que a aplicação já esteja pronta para produção. Hardening, interface e validação E2E ainda fazem parte do roadmap.
 
-A arquitetura separa:
+## 🧱 Tecnologias
 
-```text
-CORE
-→ controla as regras fundamentais do estoque
-
-CUSTOM
-→ descreve e personaliza os itens
-
-AUTH
-→ controla usuários, empresas, papéis e autenticação
-```
-
-A ideia central é manter estáveis as regras essenciais do estoque, permitindo que cada empresa configure suas próprias características sem modificar o núcleo do sistema.
-
-Exemplo:
-
-```text
-Item: Linha Rosa
-
-Unidade: Rolo
-Saldo: 1.5
-
-Categoria: Linhas
-
-Campos personalizados:
-├── Cor: Rosa Bebê
-├── Marca: Círculo
-└── Especial: Sim
-```
-
----
-
-## 🎯 Objetivo
-
-Criar uma aplicação web capaz de atender diferentes pequenos negócios sem exigir alterações estruturais no banco sempre que surgir uma nova característica de produto ou matéria-prima.
-
-A V1 foi projetada para permitir:
-
-* cadastro e gerenciamento de empresas;
-* unidades de medida;
-* cadastro de itens;
-* entradas, saídas e ajustes;
-* saldo calculado a partir do histórico;
-* estoque mínimo;
-* inventário físico;
-* categorias configuráveis;
-* campos personalizados;
-* opções para campos do tipo lista;
-* valores personalizados;
-* autenticação;
-* controle de acesso por papel;
-* isolamento entre empresas;
-* uso em desktop e dispositivos móveis.
-
----
-
-## 🧠 Princípio da arquitetura
-
-> **A estrutura fixa controla o estoque. A estrutura configurável descreve o estoque.**
-
-### CORE
-
-Responsável pelas regras fundamentais:
-
-```text
-empresa
-unidade
-item
-movimentação
-saldo
-estoque mínimo
-inventário
-```
-
-### CUSTOM
-
-Responsável pela personalização:
-
-```text
-categoria
-campo personalizado
-tipo de dado
-opção
-valor personalizado
-```
-
-### AUTH
-
-Responsável pela identidade e autorização:
-
-```text
-usuário
-empresa
-vínculo usuário/empresa
-papel
-autenticação
-autorização
-```
-
-### Regra de dependência
-
-```text
-CUSTOM → CORE ✅
-AUTH   → CORE ✅
-
-CORE   → CUSTOM ❌
-CORE   → AUTH   ❌
-```
-
-O CORE permanece independente de autenticação e de customizações.
-
-Quando uma operação precisa combinar diferentes módulos, a aplicação utiliza uma camada de **Application/Orchestration**, evitando acoplamento indevido entre os domínios.
-
----
-
-## 🏗️ Arquitetura do backend
-
-O backend utiliza um **Modular Monolith**.
-
-Fluxo principal:
-
-```text
-HTTP / Router
-      ↓
-Pydantic Schema
-      ↓
-Service / Regra de negócio
-      ↓
-SQLAlchemy
-      ↓
-PostgreSQL
-```
-
-O `main.py` permanece pequeno e funciona como ponto de montagem da aplicação.
-
-Ele não deve concentrar:
-
-```text
-regras de negócio
-cálculo de saldo
-queries complexas
-validações específicas de domínio
-```
-
-### Estrutura atual
-
-```text
-backend/
-├── app/
-│   ├── main.py
-│   │
-│   ├── application/
-│   │   ├── __init__.py
-│   │   └── company_service.py
-│   │
-│   ├── shared/
-│   │   ├── base.py
-│   │   ├── config.py
-│   │   ├── database.py
-│   │   ├── security.py
-│   │   ├── dependencies.py
-│   │   ├── company_dependencies.py
-│   │   └── authorization.py
-│   │
-│   ├── health/
-│   │   └── router.py
-│   │
-│   ├── auth/
-│   │   ├── models.py
-│   │   ├── schemas.py
-│   │   ├── service.py
-│   │   ├── company_service.py
-│   │   └── router.py
-│   │
-│   └── core/
-│       ├── models.py
-│       ├── schemas.py
-│       ├── service.py
-│       ├── router.py
-│       ├── unit_models.py
-│       ├── unit_schemas.py
-│       ├── unit_service.py
-│       └── unit_router.py
-│
-├── tests/
-├── requirements.txt
-└── .env.example
-```
-
-A estrutura poderá ser reorganizada futuramente conforme o crescimento do sistema, mas sem criar complexidade arquitetural sem necessidade.
-
----
-
-## 🔐 Autenticação e autorização
-
-A autenticação já possui implementação funcional no backend.
-
-Tecnologias utilizadas:
-
-```text
-OAuth2 Password Flow
-JWT
-PyJWT
-pwdlib
-Argon2
-```
-
-### Login
-
-```text
-POST /api/v1/auth/login
-```
-
-O usuário é autenticado e recebe um JWT.
-
-O token contém a identidade do usuário por meio de:
-
-```json
-{
-  "sub": "ID_DO_USUARIO",
-  "exp": "EXPIRACAO"
-}
-```
-
-A empresa não é fixada no JWT porque o mesmo usuário pode pertencer a várias empresas.
-
-### Usuário atual
-
-```text
-GET /api/v1/auth/me
-```
-
-O endpoint utiliza o usuário identificado pelo token.
-
-### Validação do token
-
-O backend verifica:
-
-```text
-token válido
-token não expirado
-assinatura correta
-usuário existente
-usuário ativo
-```
-
-Falhas de autenticação resultam em:
-
-```text
-401 Unauthorized
-```
-
----
-
-## 👥 Multiempresa
-
-Um usuário pode participar de várias empresas.
-
-O vínculo é representado por:
-
-```text
-auth.empresa_usuarios
-```
-
-Cada vínculo possui:
-
-```text
-empresa_id
-usuario_id
-papel
-ativo
-```
-
-### Papéis da V1
-
-```text
-OWNER
-OPERATOR
-VIEWER
-```
-
-### Contexto da empresa
-
-A empresa ativa é identificada por:
-
-```text
-X-Company-ID
-```
-
-A autorização verifica:
-
-```text
-usuário autenticado
-        ↓
-empresa solicitada
-        ↓
-membership ativa
-        ↓
-empresa ativa
-        ↓
-papel permitido
-```
-
-Isso evita que a identidade do usuário seja confundida com o contexto da empresa.
-
-### Exemplo
-
-```text
-Usuário A
-├── Empresa A → OWNER
-└── Empresa B → VIEWER
-```
-
-Uma requisição para a Empresa A utiliza:
-
-```http
-X-Company-ID: <ID_EMPRESA_A>
-```
-
-O backend valida o vínculo antes de permitir a operação.
-
-### Isolamento
-
-Uma empresa nunca deve conseguir acessar registros de outra.
-
-Exemplo inválido:
-
-```text
-Item da Empresa A
-+
-Categoria da Empresa B
-```
-
-As consultas dos recursos que já foram implementados utilizam o contexto da empresa para restringir os dados.
-
----
-
-## 🏢 Empresas
-
-CRUD inicial implementado:
-
-```text
-POST  /api/v1/empresas
-GET   /api/v1/empresas
-GET   /api/v1/empresas/{id}
-PATCH /api/v1/empresas/{id}
-```
-
-Ao criar uma empresa:
-
-```text
-criar empresa
-↓
-criar vínculo do usuário
-↓
-usuário recebe OWNER
-```
-
-Essa operação é orquestrada pela camada:
-
-```text
-application/company_service.py
-```
-
-mantendo o CORE independente do AUTH.
-
-### Inativação e reativação
-
-Empresas podem ser inativadas sem apagar seus dados.
-
-O `OWNER` pode:
-
-```text
-ativa
-↓
-desativar
-↓
-reativar
-```
-
-A rota administrativa de gestão mantém o vínculo do usuário mesmo quando a empresa está inativa, permitindo sua posterior reativação.
-
----
-
-## 📏 Unidades
-
-CRUD inicial implementado:
-
-```text
-POST  /api/v1/unidades
-GET   /api/v1/unidades
-GET   /api/v1/unidades/{id}
-PATCH /api/v1/unidades/{id}
-```
-
-Cada unidade pertence a uma empresa.
-
-Exemplos:
-
-```text
-Unidade
-Metro
-Rolo
-Kg
-Litro
-Caixa
-```
-
-Uma unidade possui:
-
-```text
-nome
-símbolo
-permite_decimal
-ativo
-empresa_id
-```
-
-Exemplo:
-
-```text
-Rolo
-permite_decimal = true
-```
-
-pode representar:
-
-```text
-1.5 rolos
-```
-
-Enquanto uma unidade configurada para não aceitar decimais deve trabalhar somente com quantidades inteiras.
-
----
-
-## 🗄️ Banco de dados
-
-O projeto utiliza **PostgreSQL**.
-
-### CORE
-
-```text
-core.empresas
-core.unidades
-core.itens
-core.movimentacoes
-core.inventarios
-core.inventario_itens
-```
-
-Views:
-
-```text
-core.vw_saldos_estoque
-core.vw_itens_estoque_baixo
-```
-
-Scripts:
-
-```text
-001_create_schemas.sql
-002_create_empresas.sql
-003_create_unidades.sql
-004_create_itens.sql
-005_create_movimentacoes.sql
-006_create_inventarios.sql
-007_create_inventario_itens.sql
-008_create_view_saldos.sql
-009_create_view_estoque_baixo.sql
-```
-
-### CUSTOM
-
-```text
-custom.categorias
-custom.item_categorias
-custom.campos
-custom.campo_opcoes
-custom.valores_item
-```
-
-Scripts:
-
-```text
-100_create_custom_schema.sql
-101_create_categorias.sql
-102_create_item_categorias.sql
-103_create_campos.sql
-104_create_campo_opcoes.sql
-105_create_valores_item.sql
-106_create_validacoes_custom.sql
-```
-
-### AUTH
+| Camada | Tecnologias |
+|---|---|
+| API | Python, FastAPI, Pydantic |
+| Persistência | SQLAlchemy 2.x, PostgreSQL, Alembic |
+| Autenticação | JWT/PyJWT, `pwdlib`, Argon2 |
+| Testes | pytest, FastAPI TestClient, httpx |
+| Frontend planejado | React, Vite, JavaScript |
+| Ferramentas | Git, GitHub, VS Code |
 
-```text
-auth.usuarios
-auth.empresa_usuarios
-```
-
-Scripts:
-
-```text
-110_create_auth_schema.sql
-111_create_usuarios.sql
-112_create_empresa_usuarios.sql
-```
-
----
-
-## 📊 Saldo de estoque
-
-O saldo não é mantido como um número editável no item.
-
-A fonte de verdade é o histórico de movimentações:
-
-```text
-ENTRADAS
-+ AJUSTES DE ENTRADA
-- SAÍDAS
-- AJUSTES DE SAÍDA
-= SALDO ATUAL
-```
-
-Isso permite:
-
-```text
-rastreabilidade
-histórico
-auditoria operacional
-correções por compensação
-```
-
-Uma movimentação incorreta não deve ser apagada para esconder o erro.
-
-O modelo esperado é:
-
-```text
-movimento incorreto
-↓
-movimento compensatório
-↓
-movimento correto
-```
-
----
-
-## 📦 Itens
-
-O cadastro de itens pertence ao CORE.
-
-Um item terá, entre outros dados:
-
-```text
-empresa
-nome
-unidade
-estoque mínimo
-ativo
-```
-
-Características específicas do negócio não devem ser adicionadas diretamente ao CORE.
-
-Exemplo:
-
-```text
-cor
-marca
-material
-gramatura
-tamanho
-impermeável
-```
-
-Esses dados pertencem à camada CUSTOM.
-
-### Estado atual
-
-```text
-Modelo SQL          → implementado no banco
-Modelo ORM          → ainda não é o próximo checkpoint
-CRUD API            → próximo passo
-```
-
----
-
-## 🧩 Campos personalizados
-
-Uma empresa pode configurar suas próprias categorias e campos.
-
-Exemplo:
-
-```text
-Categoria:
-Tecidos
-```
-
-Campos:
-
-```text
-Cor          → TEXTO_CURTO
-Gramatura    → DECIMAL
-Impermeável  → BOOLEANO
-Preço        → DINHEIRO
-Material     → LISTA
-```
-
-Tipos planejados para a V1:
-
-```text
-TEXTO_CURTO
-TEXTO_LONGO
-INTEIRO
-DECIMAL
-DINHEIRO
-BOOLEANO
-DATA
-LISTA
-```
-
-A configuração permite adaptar o sistema a diferentes tipos de negócio sem alterar a estrutura principal do estoque.
-
-### Regras importantes
-
-O backend deverá garantir:
-
-```text
-campos obrigatórios
-opções pertencentes ao campo correto
-valores compatíveis com o tipo
-isolamento por empresa
-campos inativos
-opções inativas
-recategorização segura
-```
-
----
-
-## 📦 Movimentações e estoque
-
-As movimentações serão responsáveis por registrar:
-
-```text
-ENTRADA
-SAÍDA
-AJUSTE
-```
-
-O fluxo futuro deverá respeitar:
-
-```text
-requisição
-↓
-validação
-↓
-transaction
-↓
-verificação do saldo
-↓
-registro da movimentação
-↓
-commit
-```
-
-O estoque negativo será bloqueado por padrão.
-
-Para operações concorrentes no mesmo item, a implementação deverá utilizar transação e mecanismo de serialização/row lock apropriado.
-
----
-
-## 🔄 Inventário
-
-O inventário compara o saldo registrado pelo sistema com a contagem física.
-
-Exemplo:
-
-```text
-Saldo do sistema: 12.5
-Contagem física:  12
-
-Diferença: -0.5
-```
-
-O resultado esperado é:
-
-```text
-AJUSTE_SAIDA 0.5
-```
-
-O saldo não deve ser alterado silenciosamente.
-
-A conclusão do inventário deve executar de forma atômica:
-
-```text
-calcular diferença
-↓
-gerar ajustes
-↓
-concluir inventário
-```
-
----
-
-## 🧪 Testes
-
-O projeto utiliza:
-
-```text
-pytest
-FastAPI TestClient
-SQLAlchemy
-PostgreSQL de teste
-```
-
-A estratégia inclui:
-
-```text
-unit tests
-schema tests
-database integration tests
-service tests
-API tests
-E2E tests
-```
+## 🗂️ Organização do repositório
 
-### Testes já implementados
-
-A base atual possui testes para:
-
-```text
-configuração
-database connection
-health
-segurança
-hash de senha
-JWT
-expiração de token
-token inválido
-usuário inativo
-AuthService
-ORM AUTH
-roles
-contexto de empresa
-isolamento multiempresa
-CRUD de empresas
-CRUD de unidades
-```
-
-A suíte completa foi executada durante o desenvolvimento e está verde após as últimas alterações.
-
----
-
-## 🚦 Gates do projeto
-
-### Gate A — Banco
-
-**🟢 CONCLUÍDO**
-
-Validado em banco PostgreSQL limpo:
-
-```text
-CORE
-CORE + CUSTOM
-constraints
-triggers
-views
-saldo
-inventário
-integrações CUSTOM
-regras de isolamento
-```
-
-Suíte:
-
-```text
-tests/database/run_gate_a.sql
-```
-
----
-
-### Gate B — Backend
-
-**🟡 EM ANDAMENTO**
-
-Já concluído:
-
-```text
-✅ FastAPI
-✅ configuração
-✅ conexão PostgreSQL
-✅ SQLAlchemy
-✅ health
-✅ pytest/TestClient
-✅ security foundation
-✅ AUTH ORM
-✅ AuthService
-✅ login
-✅ current_user
-✅ /auth/me
-✅ contexto de empresa
-✅ roles
-✅ isolamento multiempresa
-✅ CRUD de Empresas
-✅ CRUD de Unidades
-```
-
-Ainda pendente:
-
-```text
-⏳ CRUD de Itens
-⏳ movimentações
-⏳ saldo via API
-⏳ estoque baixo
-⏳ inventário
-⏳ API CUSTOM
-⏳ paginação completa
-⏳ tratamento global de erros
-⏳ hardening
-⏳ lint
-⏳ suíte final
-```
-
----
-
-### Gate C — Frontend
-
-**⚪ PENDENTE**
-
-```text
-interface
-integração REST
-responsividade
-autenticação
-estados de loading
-empty states
-tratamento de erros
-```
-
----
-
-### Gate D — E2E
-
-**⚪ PENDENTE**
-
-Fluxo obrigatório:
-
-```text
-login
-→ empresa
-→ unidade
-→ categoria
-→ campos
-→ item
-→ entrada
-→ saída
-→ saldo
-→ estoque baixo
-→ inventário
-→ ajuste
-```
-
----
-
-## 🛡️ Regras de segurança
-
-O projeto utiliza:
-
 ```text
-Argon2
-JWT
-OAuth2 Password Flow
-variáveis de ambiente
-isolamento multiempresa
-controle por papel
+.
+├── backend/
+│   ├── app/
+│   │   ├── application/   # Orquestração entre domínios
+│   │   ├── auth/          # Autenticação e autorização
+│   │   ├── core/          # Regras fundamentais do estoque
+│   │   ├── custom/        # Campos e categorias configuráveis
+│   │   ├── health/        # Health check
+│   │   └── shared/        # Configuração e dependências compartilhadas
+│   ├── tests/             # Testes de modelos, schemas, services e APIs
+│   ├── requirements.txt
+│   └── .env.example
+├── database/
+│   ├── core/              # Estrutura e views do CORE
+│   ├── auth/              # Estrutura de autenticação
+│   ├── custom/            # Estrutura de personalização
+│   └── apply_all.sql      # Aplicação completa em banco novo
+├── docs/
+│   └── assets/            # Recursos visuais da documentação
+├── pytest.ini
+└── README.md
 ```
-
-Senhas nunca são armazenadas em texto puro.
 
-Segredos ficam fora do código:
+## 🚀 Executar localmente
 
-```text
-.env
-```
+### 1. Preparar o ambiente Python
 
-E o repositório utiliza:
+Execute na raiz do repositório:
 
-```text
-.env.example
+```bat
+py -m venv .venv
+.venv\Scripts\activate
+python -m pip install -r backend\requirements.txt
 ```
-
-sem credenciais reais.
 
-Nunca registrar em logs:
+### 2. Configurar as variáveis de ambiente
 
-```text
-senha
-JWT completo
-SECRET_KEY
+```bat
+copy backend\.env.example backend\.env
 ```
-
----
-
-## 🧱 Regras de integridade
-
-Algumas decisões importantes já estão congeladas.
-
-### Histórico
-
-Movimentações e inventários não devem ser apagados de forma destrutiva.
 
-### Estoque
+Edite `backend/.env`, confira a URL do PostgreSQL e defina também uma `SECRET_KEY` forte. O `.env.example` é apenas um ponto de partida; não publique credenciais reais.
 
-Não existe quantidade manual no item como fonte principal de verdade.
+Exemplo de formato:
 
-### Unidade
-
-Quantidade e unidade são conceitos separados:
-
-```text
-1.5
-+
-Rolo
+```dotenv
+DATABASE_URL=postgresql+psycopg://postgres:senha@localhost:5432/estoque_flex_dev
+SECRET_KEY=substitua-por-uma-chave-segura
 ```
-
-### Unidade após histórico
-
-Uma mudança de unidade deve ser bloqueada quando o item já possui movimentações.
-
-### Categoria
-
-A troca de categoria de um item com valores CUSTOM incompatíveis deverá ser bloqueada até que os valores sejam resolvidos.
-
-### Campo obrigatório
-
-Campos CUSTOM obrigatórios serão validados no service, pois a ausência de um valor é representada pela ausência de uma linha em `custom.valores_item`.
-
----
-
-## 🛠️ Tecnologias
-
-### Backend
-
-* Python
-* FastAPI
-* Pydantic
-* SQLAlchemy 2.x
-* Alembic
-* PyJWT
-* pwdlib
-* Argon2
-* pytest
-
-### Banco
-
-* PostgreSQL
-
-### Frontend
-
-* React
-* Vite
-* JavaScript
-
-### Desenvolvimento
-
-* Git
-* GitHub
-* VS Code
 
----
+### 3. Criar e preparar um banco novo
 
-## 📁 Organização do banco
+Crie o banco `estoque_flex_dev` no PostgreSQL, caso ainda não exista. A partir da raiz do projeto, aplique os scripts versionados:
 
-A sequência dos scripts foi planejada para facilitar reconstrução de um banco limpo:
-
-```text
-database/
-├── core/
-├── custom/
-├── auth/
-└── shared/
-```
-
-Aplicação completa:
-
-```text
-database/apply_all.sql
+```bat
+psql -U postgres -d estoque_flex_dev -v ON_ERROR_STOP=1 -f database/apply_all.sql
 ```
 
-O objetivo é permitir que o ambiente possa ser reconstruído a partir dos scripts versionados.
+> Execute `database/apply_all.sql` em um banco novo. Não reaplique scripts sobre um banco existente sem antes conferir o estado das tabelas, constraints e triggers.
 
----
+### 4. Executar os testes
 
-## 💰 Custo
+Com o ambiente virtual ativo e o banco de teste configurado:
 
-O MVP foi projetado para funcionar com custo obrigatório de:
-
-```text
-R$ 0,00
-```
-
-Ferramentas principais:
-
-```text
-Python       → gratuito
-FastAPI      → gratuito
-PostgreSQL   → gratuito
-SQLAlchemy   → gratuito
-Alembic      → gratuito
-React        → gratuito
-Vite         → gratuito
-pytest       → gratuito
-Git          → gratuito
-GitHub       → gratuito
-VS Code      → gratuito
+```bat
+python -m pytest -q
 ```
 
-O desenvolvimento local não depende de serviços pagos.
+### 5. Iniciar a API
 
-Deploy remoto gratuito poderá ser utilizado posteriormente apenas para demonstração, desde que não se torne requisito para concluir a V1.
+Na raiz do repositório:
 
----
-
-## 🔧 Configuração local
-
-O ambiente utiliza variáveis de ambiente.
-
-Exemplo:
-
-```text
-DATABASE_URL=
-SECRET_KEY=
-ENVIRONMENT=
-CORS_ORIGINS=
-```
-
-O arquivo real:
-
-```text
-.env
+```bat
+uvicorn app.main:app --reload --app-dir backend
 ```
 
-não deve ser versionado.
+A documentação interativa do FastAPI ficará disponível em:
 
-Utilize:
+- Swagger UI: [`http://127.0.0.1:8000/docs`](http://127.0.0.1:8000/docs)
+- ReDoc: [`http://127.0.0.1:8000/redoc`](http://127.0.0.1:8000/redoc)
 
-```text
-.env.example
-```
+## 🔌 API
 
-como referência.
+A API usa o prefixo `/api/v1`. Os principais grupos são:
 
-### Dependências
+| Grupo | Recursos |
+|---|---|
+| AUTH | Login e usuário autenticado (`/api/v1/auth/...`) |
+| Empresas | Cadastro, listagem, consulta e atualização de empresas |
+| Unidades | Cadastro e manutenção de unidades de medida |
+| Itens | Cadastro e consulta de itens |
+| Movimentações | Registro de entradas, saídas e ajustes |
+| Estoque | Consulta de saldos e identificação de estoque baixo |
+| Inventários | Contagem física e itens de inventário |
+| CUSTOM | Categorias, campos, opções, valores e categoria dos itens |
 
-As dependências atuais incluem:
+Consulte `/docs` para ver os caminhos, parâmetros, schemas e respostas efetivamente registrados pela aplicação.
 
-```text
-fastapi
-uvicorn
-sqlalchemy
-psycopg
-pydantic-settings
-alembic
-pytest
-httpx2
-pwdlib[argon2]
-pyjwt
-python-multipart
-email-validator
-```
+## 🔐 Segurança
 
-As versões devem ser congeladas em um checkpoint posterior, depois do build do backend estar totalmente estabilizado.
+- Senhas armazenadas com hash — nunca em texto puro.
+- JWT com expiração e validação de assinatura.
+- Papéis e membership validados no backend.
+- Contexto de empresa fornecido por `X-Company-ID` e validado antes das operações protegidas.
+- Segredos mantidos em variáveis de ambiente; `.env` não deve ser versionado.
+- Tokens completos, senhas e `SECRET_KEY` não devem aparecer em logs.
 
----
+O hardening final permanece como etapa explícita antes da preparação para produção. O foco inclui revisão de permissões e isolamento, concorrência e transações de estoque, mapeamento consistente de conflitos para HTTP 409, paginação com limites máximos, CORS restrito, limites de payload, logging estruturado sem dados sensíveis e quality gates de lint/testes.
 
 ## 🗺️ Roadmap
 
-```text
-[CONCLUÍDO]
-Banco CORE + CUSTOM
-        ↓
-[CONCLUÍDO]
-Gate A
-        ↓
-[CONCLUÍDO]
-Fundação Backend
-        ↓
-[CONCLUÍDO]
-AUTH + JWT
-        ↓
-[CONCLUÍDO]
-Multiempresa + Roles
-        ↓
-[CONCLUÍDO]
-CRUD Empresas
-        ↓
-[CONCLUÍDO]
-CRUD Unidades
-        ↓
-[ATUAL]
-CRUD Itens
-        ↓
-Movimentações + Saldo
-        ↓
-API CUSTOM
-        ↓
-Inventários
-        ↓
-Testes finais do backend
-        ↓
-Frontend React
-        ↓
-Integração + UX
-        ↓
-E2E + Hardening
-        ↓
-Deploy
+```mermaid
+flowchart LR
+    A[Gate A · Banco] --> B[Backend CORE + AUTH + CUSTOM]
+    B --> C[Hardening consolidado]
+    C --> D[Frontend React + Vite]
+    D --> E[Testes E2E]
+    E --> F[Deploy e demonstração]
 ```
 
-Prioridade:
+**Próximo marco:** auditar as APIs já implementadas e executar o hardening consolidado antes de integrar o frontend. O objetivo é validar permissões, isolamento multiempresa, integridade referencial, semântica de PATCH, conflitos, concorrência de estoque e consistência dos inventários.
 
-```text
-integridade
-→ funcionamento
-→ testes
-→ segurança
-→ integração
-→ interface
-→ refinamento
-```
+## 📚 Recursos do projeto
 
----
-
-## 🚧 Status atual
-
-> **Em desenvolvimento — Gate A concluído e núcleo inicial do backend funcional. O próximo passo é implementar o CRUD de Itens.**
-
-### Banco
-
-* [x] Arquitetura CORE
-* [x] Arquitetura CUSTOM
-* [x] AUTH
-* [x] CORE implementado e revisado
-* [x] CUSTOM implementado
-* [x] Integração CORE + CUSTOM
-* [x] Testes automatizados
-* [x] Gate A
-
-### Backend
-
-* [x] Arquitetura modular
-* [x] Configuração
-* [x] PostgreSQL
-* [x] SQLAlchemy
-* [x] FastAPI
-* [x] Health
-* [x] pytest/TestClient
-* [x] Segurança
-* [x] JWT
-* [x] Login
-* [x] Current user
-* [x] `/auth/me`
-* [x] Contexto de empresa
-* [x] Roles
-* [x] Isolamento multiempresa
-* [x] CRUD Empresas
-* [x] CRUD Unidades
-* [ ] CRUD Itens
-* [ ] Movimentações
-* [ ] Saldo via API
-* [ ] Estoque baixo
-* [ ] Inventário
-* [ ] API CUSTOM
-* [ ] Hardening final
-* [ ] E2E
-
-### Frontend
-
-* [x] Stack definida
-* [ ] Interface
-* [ ] Login
-* [ ] Dashboard
-* [ ] Gestão de itens
-* [ ] Movimentações
-* [ ] Inventário
-* [ ] CUSTOM
-* [ ] Integração REST
-* [ ] Responsividade
-* [ ] Testes de fluxo
-
----
-
-## 🔄 Fluxo de desenvolvimento
-
-O projeto é desenvolvido de forma incremental:
-
-```text
-auditar
-→ decidir
-→ implementar
-→ executar
-→ testar
-→ tentar quebrar
-→ corrigir
-→ documentar
-→ commit
-→ próxima etapa
-```
-
-Nenhuma regra crítica é considerada concluída apenas porque o código foi escrito.
-
-A implementação precisa ser:
-
-```text
-executada
-+
-testada
-+
-validada
-```
-
----
-
-## 🌱 Desenvolvimento solo
-
-O Estoque Flex é desenvolvido integralmente por **Gabriel Almeida**.
-
-A estratégia atual prioriza:
-
-```text
-microetapas
-+
-testes frequentes
-+
-checkpoints Git
-+
-documentação viva
-```
-
-O projeto não depende da divisão original de tarefas entre integrantes.
-
-GitHub é utilizado como:
-
-```text
-backup
-histórico
-checkpoint
-versionamento
-base para CI futura
-```
-
-Repositório:
-
-```text
-GabrielJalmeida/baby-belo
-```
-
----
-
-## 🧭 Próximo passo
-
-O próximo domínio a ser implementado é:
-
-```text
-CORE → ITENS
-```
-
-A sequência planejada é:
-
-```text
-modelo ORM do Item
-↓
-schemas
-↓
-service
-↓
-router
-↓
-isolamento por empresa
-↓
-validação de unidade
-↓
-estoque mínimo
-↓
-PATCH
-↓
-testes
-↓
-checkpoint Git
-```
-
-Depois:
-
-```text
-Itens
-↓
-Movimentações
-↓
-Saldo
-↓
-Estoque baixo
-```
-
-A implementação de CUSTOM e Inventários ocorrerá depois que o núcleo operacional do estoque estiver funcionando.
-
----
-
-## 📌 Decisões arquiteturais importantes
-
-Estas decisões não devem ser alteradas sem motivo técnico ou evidência dos testes:
-
-```text
-PostgreSQL
-FastAPI
-SQLAlchemy 2.x
-Alembic
-pytest
-React + Vite
-REST
-Modular Monolith
-CORE independente
-CUSTOM → CORE
-AUTH → CORE
-CORE → AUTH proibido
-saldo baseado em movimentações
-quantidade NUMERIC(18,4)
-unidade separada da quantidade
-histórico preservado
-inventário gera ajustes
-estoque negativo bloqueado por padrão
-multiempresa
-JWT com sub = user_id
-empresa não fixada no JWT
-email case-insensitive unique
-Argon2 para senhas
-```
-
----
-
-## 📚 Documentação
-
-Documentos principais:
-
-```text
-docs/
-├── PLANO_BANCO_ESTOQUE_FLEX.md
-├── ESTOQUE_FLEX_PLANO_MESTRE_V1.md
-├── GUIA_BACKEND_INICIANTE_ESTOQUE_FLEX.md
-└── ESTOQUE_FLEX_PLANO_MESTRE_V2.1_CONTINUIDADE.md
-```
-
-O **Plano Mestre V2/V2.1** é a principal referência de continuidade do desenvolvimento.
-
----
-
-## 📈 Visão futura
-
-Depois da V1, o projeto poderá evoluir para:
-
-```text
-relatórios
-dashboard analítico
-previsão de reposição
-auditoria por usuário
-ficha técnica de produção
-código de barras
-fornecedores
-importação/exportação
-conversão entre unidades
-integrações externas
-```
-
-Esses recursos não fazem parte do núcleo obrigatório da V1.
+- [Scripts e estrutura do banco](database/)
+- [Dependências do backend](backend/requirements.txt)
+- [Configuração de ambiente de exemplo](backend/.env.example)
 
 ---
 
 <p align="center">
-  <strong>Estoque Flex</strong><br>
-  Flexible inventory architecture for real-world businesses.
+  <strong>Estoque Flex</strong><br />
+  <sub>Estrutura estável para o que é crítico. Flexibilidade para o que muda.</sub>
 </p>
