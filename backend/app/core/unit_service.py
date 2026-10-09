@@ -60,10 +60,7 @@ class UnidadeService:
         db: Session,
         empresa_id: int,
         unit_id: int,
-        nome: str | None = None,
-        simbolo: str | None = None,
-        permite_decimal: bool | None = None,
-        ativo: bool | None = None,
+        changes: dict[str, object],
     ) -> Unidade | None:
         unit = UnidadeService.get_unit(
             db=db,
@@ -74,17 +71,24 @@ class UnidadeService:
         if unit is None:
             return None
 
-        if nome is not None:
-            unit.nome = nome.strip()
+        if "nome" in changes:
+            unit.nome = str(changes["nome"]).strip()
 
-        if simbolo is not None:
-            unit.simbolo = simbolo.strip()
+        if "simbolo" in changes:
+            simbolo = changes["simbolo"]
+            unit.simbolo = (
+                str(simbolo).strip()
+                if simbolo is not None
+                else None
+            )
 
-        if permite_decimal is not None:
-            unit.permite_decimal = permite_decimal
+        if "permite_decimal" in changes:
+            unit.permite_decimal = bool(
+                changes["permite_decimal"]
+            )
 
-        if ativo is not None:
-            unit.ativo = ativo
+        if "ativo" in changes:
+            unit.ativo = bool(changes["ativo"])
 
         db.flush()
 

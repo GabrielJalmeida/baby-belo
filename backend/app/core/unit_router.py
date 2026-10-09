@@ -102,10 +102,7 @@ def update_unit(
         db=db,
         empresa_id=membership.empresa_id,
         unit_id=unit_id,
-        nome=data.nome,
-        simbolo=data.simbolo,
-        permite_decimal=data.permite_decimal,
-        ativo=data.ativo,
+        changes=data.model_dump(exclude_unset=True),
     )
 
     if unit is None:

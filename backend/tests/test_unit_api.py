@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.auth.models import EmpresaUsuario
@@ -334,6 +335,131 @@ def test_cannot_access_unit_from_another_company():
         db.delete(other_membership)
         db.delete(other_company)
         db.commit()
+
+    finally:
+        db.close()
+
+
+def test_patch_unit_with_empty_payload_keeps_values_unchanged():
+    db = SessionLocal()
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+
+        unit = Unidade(
+            empresa_id=company.id,
+            nome="Caixa",
+            simbolo="CX",
+            permite_decimal=False,
+            ativo=True,
+        )
+
+        db.add(unit)
+        db.commit()
+
+        token = create_access_token(subject=str(user.id))
+
+        response = client.patch(
+            f"/api/v1/unidades/{unit.id}",
+            json={},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Company-ID": str(company.id),
+            },
+        )
+
+        assert response.status_code == 200
+
+        body = response.json()
+        assert body["nome"] == "Caixa"
+        assert body["simbolo"] == "CX"
+        assert body["permite_decimal"] is False
+        assert body["ativo"] is True
+
+        cleanup(db, user, company, membership)
+
+    finally:
+        db.close()
+
+
+def test_patch_unit_can_clear_nullable_symbol():
+    db = SessionLocal()
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+
+        unit = Unidade(
+            empresa_id=company.id,
+            nome="Caixa",
+            simbolo="CX",
+            permite_decimal=False,
+            ativo=True,
+        )
+
+        db.add(unit)
+        db.commit()
+
+        token = create_access_token(subject=str(user.id))
+
+        response = client.patch(
+            f"/api/v1/unidades/{unit.id}",
+            json={"simbolo": None},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Company-ID": str(company.id),
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["simbolo"] is None
+
+        cleanup(db, user, company, membership)
+
+    finally:
+        db.close()
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["nome", "permite_decimal", "ativo"],
+)
+def test_patch_unit_rejects_null_for_non_nullable_fields(field):
+    db = SessionLocal()
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+
+        unit = Unidade(
+            empresa_id=company.id,
+            nome="Caixa",
+            simbolo="CX",
+            permite_decimal=False,
+            ativo=True,
+        )
+
+        db.add(unit)
+        db.commit()
+
+        token = create_access_token(subject=str(user.id))
+
+        response = client.patch(
+            f"/api/v1/unidades/{unit.id}",
+            json={field: None},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Company-ID": str(company.id),
+            },
+        )
+
+        assert response.status_code == 422
+
+        db.refresh(unit)
+        assert unit.nome == "Caixa"
+        assert unit.simbolo == "CX"
+        assert unit.permite_decimal is False
+        assert unit.ativo is True
+
+        cleanup(db, user, company, membership)
 
     finally:
         db.close()
