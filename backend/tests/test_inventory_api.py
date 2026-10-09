@@ -381,3 +381,46 @@ def test_open_inventory_blocks_normal_stock_movement():
         )
 
         assert movement_response.status_code == 409
+
+
+def test_viewer_cannot_modify_inventory():
+    with api_context(role="VIEWER") as context:
+        headers = context["headers"]
+
+        requests = [
+            (
+                "PUT",
+                "/api/v1/inventarios/999999/itens/999999/contagem",
+                {"quantidade_contada": "1.0000"},
+            ),
+            (
+                "POST",
+                "/api/v1/inventarios/999999/concluir",
+                None,
+            ),
+            (
+                "POST",
+                "/api/v1/inventarios/999999/cancelar",
+                None,
+            ),
+        ]
+
+        for method, path, payload in requests:
+            if payload is None:
+                response = client.request(
+                    method,
+                    path,
+                    headers=headers,
+                )
+            else:
+                response = client.request(
+                    method,
+                    path,
+                    json=payload,
+                    headers=headers,
+                )
+
+            assert response.status_code == 403, (
+                f"{method} {path}: "
+                f"esperado 403, recebido {response.status_code}"
+            )

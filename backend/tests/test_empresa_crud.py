@@ -370,3 +370,51 @@ def test_patch_rejects_explicit_null_values(payload):
 
     finally:
         db.close()
+
+
+def test_cannot_update_another_company_by_changing_path_id():
+    db = SessionLocal()
+    user_a = company_a = membership_a = None
+    user_b = company_b = membership_b = None
+
+    try:
+        user_a, company_a, membership_a = create_user_and_company(db)
+        user_b, company_b, membership_b = create_user_and_company(db)
+
+        original_name = company_b.nome
+        original_active = company_b.ativo
+        token = create_access_token(subject=str(user_a.id))
+
+        response = client.patch(
+            f"/api/v1/empresas/{company_b.id}",
+            json={
+                "nome": "Alteração indevida",
+                "ativo": False,
+            },
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Company-ID": str(company_a.id),
+            },
+        )
+
+        assert response.status_code == 403
+
+        db.refresh(company_b)
+        assert company_b.nome == original_name
+        assert company_b.ativo is original_active
+
+    finally:
+        for membership in (membership_a, membership_b):
+            if membership is not None:
+                db.delete(membership)
+
+        for company in (company_a, company_b):
+            if company is not None:
+                db.delete(company)
+
+        for user in (user_a, user_b):
+            if user is not None:
+                db.delete(user)
+
+        db.commit()
+        db.close()
