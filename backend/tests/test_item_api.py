@@ -344,3 +344,72 @@ def test_create_item_rejects_fractional_minimum_for_integer_unit():
 
     finally:
         db.close()
+
+def test_list_items_supports_limit_and_offset():
+    db = SessionLocal()
+    context = None
+
+    try:
+        context = create_context(db)
+        _, company, _, unit, headers = context
+
+        items = [
+            Item(
+                empresa_id=company.id,
+                unidade_id=unit.id,
+                nome=f"Item página {index}",
+                estoque_minimo=Decimal("0"),
+                ativo=True,
+            )
+            for index in range(1, 6)
+        ]
+
+        db.add_all(items)
+        db.commit()
+
+        expected_ids = [
+            item.id for item in items[1:3]
+        ]
+
+        response = client.get(
+            "/api/v1/itens?limit=2&offset=1",
+            headers=headers,
+        )
+
+        assert response.status_code == 200
+        assert [
+            item["id"] for item in response.json()
+        ] == expected_ids
+
+    finally:
+        if context is not None:
+            cleanup_context(db, *context[:3])
+        db.close()
+
+
+def test_list_items_rejects_invalid_pagination_parameters():
+    db = SessionLocal()
+    context = None
+
+    try:
+        context = create_context(db)
+        headers = context[4]
+
+        invalid_queries = [
+            "limit=0",
+            "limit=101",
+            "offset=-1",
+        ]
+
+        for query in invalid_queries:
+            response = client.get(
+                f"/api/v1/itens?{query}",
+                headers=headers,
+            )
+
+            assert response.status_code == 422, query
+
+    finally:
+        if context is not None:
+            cleanup_context(db, *context[:3])
+        db.close()

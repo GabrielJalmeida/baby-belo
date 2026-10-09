@@ -158,6 +158,8 @@ class ItemService:
     def list_items(
         db: Session,
         empresa_id: int,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[Item]:
         statement = (
             select(Item)
@@ -166,6 +168,8 @@ class ItemService:
                 Item.ativo.is_(True),
             )
             .order_by(Item.id)
+            .limit(limit)
+            .offset(offset)
         )
 
         return list(db.scalars(statement).all())

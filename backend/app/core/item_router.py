@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
@@ -155,12 +155,16 @@ def create_item(
     response_model=list[ItemResponse],
 )
 def list_items(
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     membership=Depends(get_current_company_membership),
     db: Session = Depends(get_db),
 ) -> list[ItemResponse]:
     return ItemService.list_items(
         db=db,
         empresa_id=membership.empresa_id,
+        limit=limit,
+        offset=offset,
     )
 
 
