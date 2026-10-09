@@ -441,3 +441,42 @@ def test_get_item_category_returns_not_found_when_unassigned():
     finally:
         cleanup(db, records)
         db.close()
+
+
+def test_get_item_category_does_not_expose_another_company_item():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user_a, company_a, membership_a = (
+            create_user_company_membership(db)
+        )
+        records.append((user_a, company_a, membership_a))
+
+        user_b, company_b, membership_b = (
+            create_user_company_membership(db)
+        )
+        records.append((user_b, company_b, membership_b))
+
+        item_b = create_item(db, company_b)
+        categoria_b = create_category(db, company_b)
+
+        assignment_response = assign_category_request(
+            user_b,
+            company_b,
+            item_b,
+            categoria_b,
+        )
+
+        assert assignment_response.status_code == 200
+
+        response = client.get(
+            f"/api/v1/custom/itens/{item_b.id}/categoria",
+            headers=auth_headers(user_a, company_a),
+        )
+
+        assert response.status_code == 404
+
+    finally:
+        cleanup(db, records)
+        db.close()

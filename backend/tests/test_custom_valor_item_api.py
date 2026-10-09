@@ -622,3 +622,52 @@ def test_patch_empty_value_payload_is_rejected():
     finally:
         cleanup(db, records)
         db.close()
+
+
+def test_cannot_update_value_from_another_company():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user_a, company_a, membership_a = (
+            create_user_company_membership(db)
+        )
+        records.append((user_a, company_a, membership_a))
+
+        user_b, company_b, membership_b = (
+            create_user_company_membership(db)
+        )
+        records.append((user_b, company_b, membership_b))
+
+        item_b, _, campo_b, _ = create_item_context(db, company_b)
+
+        created = create_value_request(
+            user_b,
+            company_b,
+            item_b,
+            campo_b,
+            {"valor_texto": "Privado"},
+        )
+
+        assert created.status_code == 201
+        valor_id = created.json()["id"]
+
+        response = client.patch(
+            f"/api/v1/custom/valores/{valor_id}",
+            json={"valor_texto": "Alterado indevidamente"},
+            headers=auth_headers(user_a, company_a),
+        )
+
+        assert response.status_code == 404
+
+        verify_response = client.get(
+            f"/api/v1/custom/valores/{valor_id}",
+            headers=auth_headers(user_b, company_b),
+        )
+
+        assert verify_response.status_code == 200
+        assert verify_response.json()["valor_texto"] == "Privado"
+
+    finally:
+        cleanup(db, records)
+        db.close()

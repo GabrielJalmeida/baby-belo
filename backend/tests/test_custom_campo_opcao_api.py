@@ -607,3 +607,47 @@ def test_patch_empty_option_payload_is_rejected():
     finally:
         cleanup(db, records)
         db.close()
+
+
+def test_cannot_update_option_from_another_company():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user_a, company_a, membership_a = (
+            create_user_company_membership(db)
+        )
+        records.append((user_a, company_a, membership_a))
+
+        user_b, company_b, membership_b = (
+            create_user_company_membership(db)
+        )
+        records.append((user_b, company_b, membership_b))
+
+        _, campo_b = create_category_and_field(db, company_b)
+
+        opcao_b = CampoOpcao(
+            campo_id=campo_b.id,
+            valor="Madeira",
+            ordem_exibicao=1,
+            ativo=True,
+        )
+        db.add(opcao_b)
+        db.commit()
+        db.refresh(opcao_b)
+
+        response = client.patch(
+            f"/api/v1/custom/opcoes/{opcao_b.id}",
+            json={"valor": "Alterada indevidamente"},
+            headers=auth_headers(user_a, company_a),
+        )
+
+        assert response.status_code == 404
+
+        db.refresh(opcao_b)
+        assert opcao_b.valor == "Madeira"
+        assert opcao_b.campo_id == campo_b.id
+
+    finally:
+        cleanup(db, records)
+        db.close()

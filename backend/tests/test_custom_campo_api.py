@@ -645,3 +645,110 @@ def test_invalid_field_type_returns_validation_error():
     finally:
         cleanup(db, records)
         db.close()
+
+
+def test_cannot_update_field_from_another_company():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user_a, company_a, membership_a = (
+            create_user_company_membership(db)
+        )
+        records.append((user_a, company_a, membership_a))
+
+        user_b, company_b, membership_b = (
+            create_user_company_membership(db)
+        )
+        records.append((user_b, company_b, membership_b))
+
+        categoria_b = Categoria(
+            empresa_id=company_b.id,
+            nome="Ferramentas",
+            ativo=True,
+        )
+        db.add(categoria_b)
+        db.flush()
+
+        campo_b = Campo(
+            empresa_id=company_b.id,
+            categoria_id=categoria_b.id,
+            nome="Cor",
+            tipo_dado="TEXTO_CURTO",
+            ativo=True,
+        )
+        db.add(campo_b)
+        db.commit()
+        db.refresh(campo_b)
+
+        response = client.patch(
+            f"/api/v1/custom/campos/{campo_b.id}",
+            json={"nome": "Alterado indevidamente"},
+            headers=auth_headers(user_a, company_a),
+        )
+
+        assert response.status_code == 404
+
+        db.refresh(campo_b)
+        assert campo_b.nome == "Cor"
+        assert campo_b.empresa_id == company_b.id
+
+    finally:
+        cleanup(db, records)
+        db.close()
+
+
+def test_update_field_rejects_category_from_another_company():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user_a, company_a, membership_a = (
+            create_user_company_membership(db)
+        )
+        records.append((user_a, company_a, membership_a))
+
+        user_b, company_b, membership_b = (
+            create_user_company_membership(db)
+        )
+        records.append((user_b, company_b, membership_b))
+
+        categoria_a = Categoria(
+            empresa_id=company_a.id,
+            nome="Ferramentas",
+            ativo=True,
+        )
+        categoria_b = Categoria(
+            empresa_id=company_b.id,
+            nome="Materiais",
+            ativo=True,
+        )
+        db.add_all([categoria_a, categoria_b])
+        db.flush()
+
+        campo_a = Campo(
+            empresa_id=company_a.id,
+            categoria_id=categoria_a.id,
+            nome="Cor",
+            tipo_dado="TEXTO_CURTO",
+            ativo=True,
+        )
+        db.add(campo_a)
+        db.commit()
+        db.refresh(campo_a)
+
+        response = client.patch(
+            f"/api/v1/custom/campos/{campo_a.id}",
+            json={"categoria_id": categoria_b.id},
+            headers=auth_headers(user_a, company_a),
+        )
+
+        assert response.status_code == 404
+
+        db.refresh(campo_a)
+        assert campo_a.categoria_id == categoria_a.id
+        assert campo_a.empresa_id == company_a.id
+
+    finally:
+        cleanup(db, records)
+        db.close()
