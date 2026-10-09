@@ -413,3 +413,49 @@ def test_list_items_rejects_invalid_pagination_parameters():
         if context is not None:
             cleanup_context(db, *context[:3])
         db.close()
+
+
+def test_cannot_update_item_from_another_company():
+    db = SessionLocal()
+    first_context = None
+    second_context = None
+
+    try:
+        first_context = create_context(db)
+        second_context = create_context(db)
+
+        _, company_b, _, unit_b, _ = second_context
+        headers_a = first_context[4]
+
+        item = Item(
+            empresa_id=company_b.id,
+            unidade_id=unit_b.id,
+            nome="Item privado",
+            descricao="Descrição privada",
+            estoque_minimo=Decimal("0"),
+            ativo=True,
+        )
+
+        db.add(item)
+        db.commit()
+
+        response = client.patch(
+            f"/api/v1/itens/{item.id}",
+            json={"nome": "Alterado indevidamente"},
+            headers=headers_a,
+        )
+
+        assert response.status_code == 404
+
+        db.refresh(item)
+        assert item.nome == "Item privado"
+        assert item.descricao == "Descrição privada"
+
+    finally:
+        if first_context is not None:
+            cleanup_context(db, *first_context[:3])
+
+        if second_context is not None:
+            cleanup_context(db, *second_context[:3])
+
+        db.close()

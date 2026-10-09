@@ -547,3 +547,66 @@ def test_list_units_rejects_invalid_pagination_parameters():
         if user is not None and company is not None and membership is not None:
             cleanup(db, user, company, membership)
         db.close()
+
+
+def test_cannot_update_unit_from_another_company():
+    db = SessionLocal()
+    user = company = membership = None
+    other_user = other_company = other_membership = None
+    unit = None
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        other_user, other_company, other_membership = (
+            create_user_company_membership(db)
+        )
+
+        unit = Unidade(
+            empresa_id=other_company.id,
+            nome="Unidade Privada",
+            simbolo="UP",
+            permite_decimal=False,
+            ativo=True,
+        )
+
+        db.add(unit)
+        db.commit()
+
+        token = create_access_token(subject=str(user.id))
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "X-Company-ID": str(company.id),
+        }
+
+        response = client.patch(
+            f"/api/v1/unidades/{unit.id}",
+            json={"nome": "Alterada indevidamente"},
+            headers=headers,
+        )
+
+        assert response.status_code == 404
+
+        db.refresh(unit)
+        assert unit.nome == "Unidade Privada"
+
+    finally:
+        if (
+            user is not None
+            and company is not None
+            and membership is not None
+        ):
+            cleanup(db, user, company, membership)
+
+        if (
+            other_user is not None
+            and other_company is not None
+            and other_membership is not None
+        ):
+            cleanup(
+                db,
+                other_user,
+                other_company,
+                other_membership,
+            )
+
+        db.close()
