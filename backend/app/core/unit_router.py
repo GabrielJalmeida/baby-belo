@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import DBAPIError
 
 from app.core.unit_schemas import (
     UnidadeCreate,
@@ -15,6 +16,34 @@ from app.shared.authorization import require_role
 from app.shared.company_dependencies import get_current_company_membership
 from app.shared.database import get_db
 
+def _handle_write_error(db: Session, exc: DBAPIError) -> None:
+    db.rollback()
+
+    original = exc.orig
+    sqlstate = (
+        getattr(original, "sqlstate", None)
+        or getattr(original, "pgcode", None)
+    )
+
+    if sqlstate == "23505":
+        raise HTTPException(
+            status_code=409,
+            detail="Já existe uma unidade com esse nome nesta empresa.",
+        ) from exc
+
+    if sqlstate == "23514":
+        raise HTTPException(
+            status_code=422,
+            detail="Os dados violam uma regra de integridade da unidade.",
+        ) from exc
+
+    if sqlstate == "23503":
+        raise HTTPException(
+            status_code=422,
+            detail="A empresa ou unidade informada é inválida.",
+        ) from exc
+
+    raise exc
 
 router = APIRouter(
     prefix="/api/v1/unidades",
@@ -34,18 +63,22 @@ def create_unit(
     ),
     db: Session = Depends(get_db),
 ) -> UnidadeResponse:
-    unit = UnidadeService.create_unit(
-        db=db,
-        empresa_id=membership.empresa_id,
-        nome=data.nome,
-        simbolo=data.simbolo,
-        permite_decimal=data.permite_decimal,
-    )
+    try:
+        unit = UnidadeService.create_unit(
+            db=db,
+            empresa_id=membership.empresa_id,
+            nome=data.nome,
+            simbolo=data.simbolo,
+            permite_decimal=data.permite_decimal,
+        )
 
-    db.commit()
-    db.refresh(unit)
+        db.commit()
+        db.refresh(unit)
 
-    return unit
+        return unit
+
+    except DBAPIError as exc:
+        _handle_write_error(db, exc)
 
 @router.get(
     "",
@@ -113,6 +146,18 @@ def update_unit(
             unit_id=unit_id,
             changes=data.model_dump(exclude_unset=True),
         )
+
+        if unit is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Unidade não encontrada.",
+            )
+
+        db.commit()
+        db.refresh(unit)
+
+        return unit
+
     except (
         UnidadeBloqueadaPorInventarioAbertoError,
         UnidadeComQuantidadesFracionariasError,
@@ -123,13 +168,9 @@ def update_unit(
             detail=str(exc),
         ) from exc
 
-    if unit is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Unidade não encontrada.",
-        )
+    except HTTPException:
+        db.rollback()
+        raise
 
-    db.commit()
-    db.refresh(unit)
-
-    return unit
+    except DBAPIError as exc:
+        _handle_write_error(db, exc)

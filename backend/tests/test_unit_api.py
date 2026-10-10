@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core.unit_service import UnidadeService
 from app.auth.models import EmpresaUsuario
 from app.auth.service import AuthService
 from app.core.models import Empresa
@@ -609,4 +610,132 @@ def test_cannot_update_unit_from_another_company():
                 other_membership,
             )
 
+        db.close()
+
+def test_create_unit_duplicate_name_returns_conflict():
+    db = SessionLocal()
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+
+        existing_unit = Unidade(
+            empresa_id=company.id,
+            nome="Estoque",
+            simbolo="UN",
+            permite_decimal=True,
+            ativo=True,
+        )
+        db.add(existing_unit)
+        db.commit()
+
+        token = create_access_token(subject=str(user.id))
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "X-Company-ID": str(company.id),
+        }
+
+        safe_client = TestClient(app, raise_server_exceptions=False)
+
+        response = safe_client.post(
+            "/api/v1/unidades",
+            json={
+                "nome": "Estoque",
+                "simbolo": "UN",
+                "permite_decimal": True,
+            },
+            headers=headers,
+        )
+
+        assert response.status_code == 409
+
+        db.refresh(existing_unit)
+        assert existing_unit.nome == "Estoque"
+
+        cleanup(db, user, company, membership)
+
+    finally:
+        db.close()
+
+def test_update_unit_duplicate_name_returns_conflict():
+    db = SessionLocal()
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+
+        original_unit = Unidade(
+            empresa_id=company.id,
+            nome="Estoque A",
+            simbolo="A",
+            permite_decimal=True,
+            ativo=True,
+        )
+        existing_unit = Unidade(
+            empresa_id=company.id,
+            nome="Estoque B",
+            simbolo="B",
+            permite_decimal=True,
+            ativo=True,
+        )
+        db.add_all([original_unit, existing_unit])
+        db.commit()
+
+        token = create_access_token(subject=str(user.id))
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "X-Company-ID": str(company.id),
+        }
+
+        safe_client = TestClient(app, raise_server_exceptions=False)
+
+        response = safe_client.patch(
+            f"/api/v1/unidades/{original_unit.id}",
+            json={"nome": "Estoque B"},
+            headers=headers,
+        )
+
+        assert response.status_code == 409
+
+        db.refresh(original_unit)
+        assert original_unit.nome == "Estoque A"
+
+        cleanup(db, user, company, membership)
+
+    finally:
+        db.close()
+
+def test_create_unit_whitespace_name_returns_unprocessable_entity():
+    db = SessionLocal()
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+
+        token = create_access_token(subject=str(user.id))
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "X-Company-ID": str(company.id),
+        }
+
+        safe_client = TestClient(app, raise_server_exceptions=False)
+
+        response = safe_client.post(
+            "/api/v1/unidades",
+            json={
+                "nome": "   ",
+                "simbolo": "UN",
+                "permite_decimal": True,
+            },
+            headers=headers,
+        )
+
+        assert response.status_code == 422
+
+        units = UnidadeService.list_units(
+            db=db,
+            empresa_id=company.id,
+        )
+        assert all(unit.nome.strip() for unit in units)
+
+        cleanup(db, user, company, membership)
+
+    finally:
         db.close()

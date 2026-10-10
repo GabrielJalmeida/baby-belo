@@ -1,4 +1,5 @@
-
+from sqlalchemy import event
+from app.core.movement_models import Movimentacao
 from contextlib import contextmanager
 from uuid import uuid4
 
@@ -511,3 +512,87 @@ def test_cannot_disable_decimal_unit_with_fractional_stock_minimum():
 
         assert unit_response.status_code == 200
         assert unit_response.json()["permite_decimal"] is True
+
+def test_failed_inventory_adjustments_are_rolled_back_atomically():
+    with api_context(item_count=2) as context:
+        headers = context["headers"]
+        item_ids = context["item_ids"]
+
+        open_response = client.post(
+            "/api/v1/inventarios",
+            json={},
+            headers=headers,
+        )
+
+        assert open_response.status_code == 201
+        inventory_id = open_response.json()["id"]
+
+        # Registra contagens que exigem dois ajustes de entrada.
+        for item_id, counted in zip(item_ids, ("3.0000", "4.0000")):
+            response = client.put(
+                f"/api/v1/inventarios/{inventory_id}"
+                f"/itens/{item_id}/contagem",
+                json={"quantidade_contada": counted},
+                headers=headers,
+            )
+
+            assert response.status_code == 200
+
+        # Simula uma falha de integridade durante o INSERT dos ajustes.
+        # A restrição real do banco deve rejeitar o tipo inválido.
+        def invalidate_inventory_adjustment(mapper, connection, target):
+            if (
+                target.motivo
+                and target.motivo.startswith("Ajuste de inventário #")
+            ):
+                target.tipo = "TIPO_INVALIDO"
+
+        event.listen(
+            Movimentacao,
+            "before_insert",
+            invalidate_inventory_adjustment,
+        )
+
+        try:
+            completion_response = client.post(
+                f"/api/v1/inventarios/{inventory_id}/concluir",
+                headers=headers,
+            )
+        finally:
+            event.remove(
+                Movimentacao,
+                "before_insert",
+                invalidate_inventory_adjustment,
+            )
+
+        assert completion_response.status_code == 422
+
+        # A falha deve deixar o inventário aberto.
+        detail_response = client.get(
+            f"/api/v1/inventarios/{inventory_id}",
+            headers=headers,
+        )
+
+        assert detail_response.status_code == 200
+        detail = detail_response.json()
+        assert detail["status"] == "ABERTO"
+        assert detail["concluido_em"] is None
+        assert detail["cancelado_em"] is None
+
+        # Nenhum ajuste pode permanecer gravado parcialmente.
+        for item_id in item_ids:
+            history_response = client.get(
+                f"/api/v1/itens/{item_id}/movimentacoes",
+                headers=headers,
+            )
+
+            assert history_response.status_code == 200
+            assert history_response.json() == []
+
+            balance_response = client.get(
+                f"/api/v1/itens/{item_id}/saldo",
+                headers=headers,
+            )
+
+            assert balance_response.status_code == 200
+            assert balance_response.json()["saldo_atual"] == "0.0000"
