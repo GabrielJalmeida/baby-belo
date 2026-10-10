@@ -218,7 +218,7 @@ class ItemService:
         company = db.scalar(
             select(Empresa)
             .where(Empresa.id == empresa_id)
-            .with_for_update()
+            .with_for_update(key_share=True)
         )
 
         if company is None or not company.ativo:
