@@ -6,7 +6,11 @@ from app.core.unit_schemas import (
     UnidadeResponse,
     UnidadeUpdate,
 )
-from app.core.unit_service import UnidadeService
+from app.core.unit_service import (
+    UnidadeBloqueadaPorInventarioAbertoError,
+    UnidadeComQuantidadesFracionariasError,
+    UnidadeService,
+)
 from app.shared.authorization import require_role
 from app.shared.company_dependencies import get_current_company_membership
 from app.shared.database import get_db
@@ -102,12 +106,22 @@ def update_unit(
     ),
     db: Session = Depends(get_db),
 ) -> UnidadeResponse:
-    unit = UnidadeService.update_unit(
-        db=db,
-        empresa_id=membership.empresa_id,
-        unit_id=unit_id,
-        changes=data.model_dump(exclude_unset=True),
-    )
+    try:
+        unit = UnidadeService.update_unit(
+            db=db,
+            empresa_id=membership.empresa_id,
+            unit_id=unit_id,
+            changes=data.model_dump(exclude_unset=True),
+        )
+    except (
+        UnidadeBloqueadaPorInventarioAbertoError,
+        UnidadeComQuantidadesFracionariasError,
+    ) as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
 
     if unit is None:
         raise HTTPException(

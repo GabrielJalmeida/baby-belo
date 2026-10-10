@@ -123,6 +123,25 @@ class ItemService:
             empresa_id=empresa_id,
         )
 
+        # Revalida a unidade após obter o bloqueio da empresa.
+        # Isso evita usar uma configuração antiga de permite_decimal.
+        unit = db.scalar(
+            select(Unidade)
+            .where(
+                Unidade.id == unidade_id,
+                Unidade.empresa_id == empresa_id,
+                Unidade.ativo.is_(True),
+            )
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+
+        if unit is None:
+            raise UnidadeItemInvalidaError(
+                "A unidade não existe, está inativa ou não pertence "
+                "a esta empresa."
+            )
+
         ItemService._validate_stock_minimum(
             unit=unit,
             estoque_minimo=estoque_minimo,
@@ -194,6 +213,16 @@ class ItemService:
         item_id: int,
         changes: dict[str, object],
     ) -> Item | None:
+        # Mantém a ordem de bloqueio consistente com a alteração
+        # de unidades e a abertura de inventários.
+        company = db.scalar(
+            select(Empresa)
+            .where(Empresa.id == empresa_id)
+            .with_for_update()
+        )
+
+        if company is None or not company.ativo:
+            return None
         item = db.scalar(
             select(Item)
             .where(

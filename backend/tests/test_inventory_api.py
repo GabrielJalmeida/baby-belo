@@ -424,3 +424,90 @@ def test_viewer_cannot_modify_inventory():
                 f"{method} {path}: "
                 f"esperado 403, recebido {response.status_code}"
             )
+
+def test_cannot_disable_decimal_unit_with_fractional_stock():
+    with api_context() as context:
+        movement_response = client.post(
+            "/api/v1/movimentacoes",
+            json={
+                "item_id": context["item_ids"][0],
+                "tipo": "ENTRADA",
+                "quantidade": "1.5000",
+            },
+            headers=context["headers"],
+        )
+
+        assert movement_response.status_code == 201
+
+        update_response = client.patch(
+            f"/api/v1/unidades/{context['unit_id']}",
+            json={"permite_decimal": False},
+            headers=context["headers"],
+        )
+
+        assert update_response.status_code == 409
+
+        unit_response = client.get(
+            f"/api/v1/unidades/{context['unit_id']}",
+            headers=context["headers"],
+        )
+
+        assert unit_response.status_code == 200
+        assert unit_response.json()["permite_decimal"] is True
+
+def test_cannot_disable_decimal_unit_while_inventory_is_open():
+    with api_context() as context:
+        inventory_response = client.post(
+            "/api/v1/inventarios",
+            json={},
+            headers=context["headers"],
+        )
+
+        assert inventory_response.status_code == 201
+
+        update_response = client.patch(
+            f"/api/v1/unidades/{context['unit_id']}",
+            json={"permite_decimal": False},
+            headers=context["headers"],
+        )
+
+        assert update_response.status_code == 409
+
+        unit_response = client.get(
+            f"/api/v1/unidades/{context['unit_id']}",
+            headers=context["headers"],
+        )
+
+        assert unit_response.status_code == 200
+        assert unit_response.json()["permite_decimal"] is True
+
+def test_cannot_disable_decimal_unit_with_fractional_stock_minimum():
+    with api_context() as context:
+        item_id = context["item_ids"][0]
+        unit_id = context["unit_id"]
+        headers = context["headers"]
+
+        item_response = client.patch(
+            f"/api/v1/itens/{item_id}",
+            json={"estoque_minimo": "1.5000"},
+            headers=headers,
+        )
+
+        assert item_response.status_code == 200
+        assert item_response.json()["estoque_minimo"] == "1.5000"
+
+        update_response = client.patch(
+            f"/api/v1/unidades/{unit_id}",
+            json={"permite_decimal": False},
+            headers=headers,
+        )
+
+        assert update_response.status_code == 409
+
+        unit_response = client.get(
+            f"/api/v1/unidades/{unit_id}",
+            headers=headers,
+        )
+
+        assert unit_response.status_code == 200
+        assert unit_response.json()["permite_decimal"] is True
