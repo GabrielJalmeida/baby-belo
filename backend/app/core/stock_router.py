@@ -1,5 +1,4 @@
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.stock_schemas import (
@@ -25,11 +24,15 @@ router = APIRouter(
 )
 def list_stock_balances(
     membership=Depends(get_current_company_membership),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ) -> list[SaldoEstoqueResponse]:
     return StockService.list_balances(
         db=db,
         empresa_id=membership.empresa_id,
+        limit=limit,
+        offset=offset,
     )
 
 
@@ -39,9 +42,13 @@ def list_stock_balances(
 )
 def list_low_stock(
     membership=Depends(get_current_company_membership),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ) -> list[EstoqueBaixoResponse]:
     return StockService.list_low_stock(
         db=db,
         empresa_id=membership.empresa_id,
+        limit=limit,
+        offset=offset,
     )

@@ -83,6 +83,8 @@ class CategoriaService:
     def list_categories(
         db: Session,
         empresa_id: int,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[Categoria]:
         statement = (
             select(Categoria)
@@ -92,6 +94,12 @@ class CategoriaService:
             )
             .order_by(Categoria.id)
         )
+
+        if limit is not None:
+            statement = statement.limit(limit)
+
+        if offset:
+            statement = statement.offset(offset)
 
         return list(db.scalars(statement).all())
 

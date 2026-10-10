@@ -752,3 +752,65 @@ def test_update_field_rejects_category_from_another_company():
     finally:
         cleanup(db, records)
         db.close()
+
+def test_list_fields_supports_pagination_and_limit_maximum():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        categoria = Categoria(
+            empresa_id=company.id,
+            nome="Categoria de paginação",
+            ativo=True,
+        )
+        db.add(categoria)
+        db.flush()
+
+        db.add_all(
+            [
+                Campo(
+                    empresa_id=company.id,
+                    categoria_id=categoria.id,
+                    nome=f"Campo paginado {index}",
+                    tipo_dado="TEXTO_CURTO",
+                    ordem_exibicao=index,
+                    ativo=True,
+                )
+                for index in range(3)
+            ]
+        )
+        db.commit()
+
+        headers = auth_headers(user, company)
+        all_response = client.get(
+            "/api/v1/custom/campos",
+            headers=headers,
+        )
+
+        assert all_response.status_code == 200
+        all_fields = all_response.json()
+        assert len(all_fields) == 3
+
+        page_response = client.get(
+            "/api/v1/custom/campos",
+            params={"limit": 1, "offset": 1},
+            headers=headers,
+        )
+
+        assert page_response.status_code == 200
+        assert page_response.json() == all_fields[1:2]
+
+        invalid_limit_response = client.get(
+            "/api/v1/custom/campos",
+            params={"limit": 101},
+            headers=headers,
+        )
+
+        assert invalid_limit_response.status_code == 422
+
+    finally:
+        cleanup(db, records)
+        db.close()

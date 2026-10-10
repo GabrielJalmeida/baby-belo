@@ -190,3 +190,62 @@ def test_low_stock_returns_active_items_only_for_current_company():
 
     finally:
         db.close()
+
+def test_stock_lists_support_pagination_and_limit_maximum():
+    db = SessionLocal()
+    context = None
+
+    try:
+        context = create_context(db)
+        user, company, membership, unit, first_item, headers = context
+
+        extra_items = [
+            Item(
+                empresa_id=company.id,
+                unidade_id=unit.id,
+                nome=f"Item extra {uuid4().hex}",
+                estoque_minimo=Decimal("2.0000"),
+                ativo=True,
+            )
+            for _ in range(2)
+        ]
+
+        db.add_all(extra_items)
+        db.commit()
+
+        expected_ids = sorted(
+            [first_item.id, *(item.id for item in extra_items)]
+        )
+
+        for endpoint in (
+            "/api/v1/estoque/saldos",
+            "/api/v1/estoque/baixo",
+        ):
+            response = client.get(
+                endpoint,
+                params={"limit": 1, "offset": 1},
+                headers=headers,
+            )
+
+            assert response.status_code == 200, response.text
+            assert [
+                row["item_id"] for row in response.json()
+            ] == [expected_ids[1]]
+
+            invalid_limit = client.get(
+                endpoint,
+                params={"limit": 101},
+                headers=headers,
+            )
+
+            assert invalid_limit.status_code == 422
+
+    finally:
+        if context is not None:
+            cleanup_context(
+                db,
+                context[0],
+                context[1],
+                context[2],
+            )
+        db.close()

@@ -8,6 +8,8 @@ class StockService:
     def list_balances(
         db: Session,
         empresa_id: int,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[dict]:
         statement = text(
             """
@@ -24,12 +26,17 @@ class StockService:
             FROM core.vw_saldos_estoque
             WHERE empresa_id = :empresa_id
             ORDER BY item_id
+            LIMIT :limit
+            OFFSET :offset
             """
         )
 
         result = db.execute(
             statement,
-            {"empresa_id": empresa_id},
+            {
+            "empresa_id":empresa_id,
+            "limit": limit, "offset": offset,
+            },
         )
 
         return [
@@ -41,6 +48,8 @@ class StockService:
     def list_low_stock(
         db: Session,
         empresa_id: int,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[dict]:
         statement = text(
             """
@@ -56,12 +65,17 @@ class StockService:
             FROM core.vw_itens_estoque_baixo
             WHERE empresa_id = :empresa_id
             ORDER BY item_id
+            LIMIT :limit
+            OFFSET :offset
             """
         )
 
         result = db.execute(
             statement,
-            {"empresa_id": empresa_id},
+            {
+            "empresa_id":empresa_id,
+            "limit": limit, "offset": offset,
+            },
         )
 
         return [

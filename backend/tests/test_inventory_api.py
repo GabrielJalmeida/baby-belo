@@ -596,3 +596,86 @@ def test_failed_inventory_adjustments_are_rolled_back_atomically():
 
             assert balance_response.status_code == 200
             assert balance_response.json()["saldo_atual"] == "0.0000"
+
+def test_inventory_list_supports_pagination_and_limit_maximum():
+    with api_context() as context:
+        # Finaliza cada inventário para permitir abrir o próximo.
+        for _ in range(3):
+            create_response = client.post(
+                "/api/v1/inventarios",
+                json={},
+                headers=context["headers"],
+            )
+            assert create_response.status_code == 201
+
+            inventory_id = create_response.json()["id"]
+
+            cancel_response = client.post(
+                f"/api/v1/inventarios/{inventory_id}/cancelar",
+                headers=context["headers"],
+            )
+            assert cancel_response.status_code == 200
+
+        all_response = client.get(
+            "/api/v1/inventarios",
+            headers=context["headers"],
+        )
+        assert all_response.status_code == 200
+
+        all_inventories = all_response.json()
+        assert len(all_inventories) == 3
+
+        page_response = client.get(
+            "/api/v1/inventarios?limit=1&offset=1",
+            headers=context["headers"],
+        )
+        assert page_response.status_code == 200
+        assert page_response.json() == all_inventories[1:2]
+
+        invalid_limit_response = client.get(
+            "/api/v1/inventarios?limit=101",
+            headers=context["headers"],
+        )
+        assert invalid_limit_response.status_code == 422
+
+
+def test_inventory_item_list_supports_pagination_without_truncating_detail():
+    with api_context(item_count=101) as context:
+        create_response = client.post(
+            "/api/v1/inventarios",
+            json={},
+            headers=context["headers"],
+        )
+        assert create_response.status_code == 201
+
+        inventory_id = create_response.json()["id"]
+
+        all_items_response = client.get(
+            f"/api/v1/inventarios/{inventory_id}/itens",
+            headers=context["headers"],
+        )
+        assert all_items_response.status_code == 200
+
+        all_items = all_items_response.json()
+        assert len(all_items) == 50
+
+        page_response = client.get(
+            f"/api/v1/inventarios/{inventory_id}/itens?limit=1&offset=1",
+            headers=context["headers"],
+        )
+        assert page_response.status_code == 200
+        assert page_response.json() == all_items[1:2]
+
+        invalid_limit_response = client.get(
+            f"/api/v1/inventarios/{inventory_id}/itens?limit=101",
+            headers=context["headers"],
+        )
+        assert invalid_limit_response.status_code == 422
+
+        # O endpoint de detalhe deve continuar retornando o snapshot completo.
+        detail_response = client.get(
+            f"/api/v1/inventarios/{inventory_id}",
+            headers=context["headers"],
+        )
+        assert detail_response.status_code == 200
+        assert len(detail_response.json()["itens"]) == 101

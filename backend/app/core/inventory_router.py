@@ -1,5 +1,4 @@
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
@@ -123,6 +122,7 @@ def _build_inventory_detail(
     empresa_id: int,
     inventory,
 ) -> InventarioDetalheResponse:
+    # O detalhe precisa conter o snapshot completo.
     items = InventarioService.list_inventory_items(
         db=db,
         empresa_id=empresa_id,
@@ -172,12 +172,16 @@ def create_inventory(
     response_model=list[InventarioResponse],
 )
 def list_inventories(
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     membership=Depends(get_current_company_membership),
     db: Session = Depends(get_db),
 ) -> list[InventarioResponse]:
     return InventarioService.list_inventories(
         db=db,
         empresa_id=membership.empresa_id,
+        limit=limit,
+        offset=offset,
     )
 
 
@@ -215,6 +219,8 @@ def get_inventory(
 )
 def list_inventory_items(
     inventario_id: int,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     membership=Depends(get_current_company_membership),
     db: Session = Depends(get_db),
 ) -> list[InventarioItemResponse]:
@@ -234,6 +240,8 @@ def list_inventory_items(
         db=db,
         empresa_id=membership.empresa_id,
         inventario_id=inventario_id,
+        limit=limit,
+        offset=offset,
     )
 
 

@@ -134,6 +134,8 @@ class CampoService:
         db: Session,
         empresa_id: int,
         categoria_id: int | None = None,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[Campo]:
         statement = select(Campo).where(
             Campo.empresa_id == empresa_id,
@@ -149,6 +151,12 @@ class CampoService:
             Campo.ordem_exibicao,
             Campo.id,
         )
+
+        if limit is not None:
+            statement = statement.limit(limit)
+
+        if offset:
+            statement = statement.offset(offset)
 
         return list(db.scalars(statement).all())
 

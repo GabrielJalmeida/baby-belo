@@ -651,3 +651,56 @@ def test_cannot_update_option_from_another_company():
     finally:
         cleanup(db, records)
         db.close()
+
+def test_list_options_supports_pagination_and_limit_maximum():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        _, campo = create_category_and_field(db, company)
+
+        db.add_all(
+            [
+                CampoOpcao(
+                    campo_id=campo.id,
+                    valor=f"Opção {index}",
+                    ordem_exibicao=index,
+                    ativo=True,
+                )
+                for index in range(1, 4)
+            ]
+        )
+        db.commit()
+
+        headers = auth_headers(user, company)
+        url = f"/api/v1/custom/campos/{campo.id}/opcoes"
+
+        all_response = client.get(url, headers=headers)
+
+        assert all_response.status_code == 200
+        all_options = all_response.json()
+        assert len(all_options) == 3
+
+        page_response = client.get(
+            url,
+            params={"limit": 1, "offset": 1},
+            headers=headers,
+        )
+
+        assert page_response.status_code == 200
+        assert page_response.json() == all_options[1:2]
+
+        invalid_limit_response = client.get(
+            url,
+            params={"limit": 101},
+            headers=headers,
+        )
+
+        assert invalid_limit_response.status_code == 422
+
+    finally:
+        cleanup(db, records)
+        db.close()

@@ -116,6 +116,8 @@ class CampoOpcaoService:
         db: Session,
         empresa_id: int,
         campo_id: int,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[CampoOpcao]:
         CampoOpcaoService._buscar_campo_lista(
             db=db,
@@ -134,6 +136,12 @@ class CampoOpcaoService:
                 CampoOpcao.id,
             )
         )
+
+        if limit is not None:
+            statement = statement.limit(limit)
+
+        if offset:
+            statement = statement.offset(offset)
 
         return list(db.scalars(statement).all())
 

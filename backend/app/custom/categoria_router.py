@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -82,12 +82,16 @@ def create_category(
     response_model=list[CategoriaRead],
 )
 def list_categories(
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     membership=Depends(get_current_company_membership),
     db: Session = Depends(get_db),
 ) -> list[CategoriaRead]:
     return CategoriaService.list_categories(
         db=db,
         empresa_id=membership.empresa_id,
+        limit=limit,
+        offset=offset,
     )
 
 

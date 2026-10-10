@@ -671,3 +671,100 @@ def test_cannot_update_value_from_another_company():
     finally:
         cleanup(db, records)
         db.close()
+
+def test_cannot_change_field_type_when_values_exist():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        item, categoria, campo, _ = create_item_context(
+            db,
+            company,
+            tipo_dado="TEXTO_CURTO",
+        )
+
+        value_response = create_value_request(
+            user,
+            company,
+            item,
+            campo,
+            {"valor_texto": "Madeira"},
+        )
+
+        assert value_response.status_code == 201, value_response.text
+
+        response = client.patch(
+            f"/api/v1/custom/campos/{campo.id}",
+            json={"tipo_dado": "INTEIRO"},
+            headers=auth_headers(user, company),
+        )
+
+        assert response.status_code == 409, response.text
+
+        db.refresh(campo)
+        assert campo.tipo_dado == "TEXTO_CURTO"
+
+    finally:
+        cleanup(db, records)
+        db.close()
+
+def test_create_list_value_rejects_option_from_another_field():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        item, categoria, campo, _ = create_item_context(
+            db,
+            company,
+            tipo_dado="LISTA",
+        )
+
+        outro_campo = Campo(
+            empresa_id=company.id,
+            categoria_id=categoria.id,
+            nome=f"Outro campo {uuid4().hex}",
+            tipo_dado="LISTA",
+            obrigatorio=False,
+            configuracao={},
+            ordem_exibicao=1,
+            ativo=True,
+        )
+        db.add(outro_campo)
+        db.flush()
+
+        outra_opcao = CampoOpcao(
+            campo_id=outro_campo.id,
+            valor=f"Opção {uuid4().hex}",
+            ordem_exibicao=0,
+            ativo=True,
+        )
+        db.add(outra_opcao)
+        db.commit()
+
+        response = create_value_request(
+            user,
+            company,
+            item,
+            campo,
+            {"opcao_id": outra_opcao.id},
+        )
+
+        assert response.status_code == 422, response.text
+
+        valor_id = db.scalar(
+            select(ValorItem.id).where(
+                ValorItem.item_id == item.id,
+                ValorItem.campo_id == campo.id,
+            )
+        )
+        assert valor_id is None
+
+    finally:
+        cleanup(db, records)
+        db.close()

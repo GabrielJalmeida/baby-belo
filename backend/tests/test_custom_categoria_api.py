@@ -467,3 +467,54 @@ def test_cannot_update_category_from_another_company():
     finally:
         cleanup(db, records)
         db.close()
+
+def test_list_categories_supports_pagination_and_limit_maximum():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        db.add_all(
+            [
+                Categoria(
+                    empresa_id=company.id,
+                    nome=f"Categoria paginada {index}",
+                    ativo=True,
+                )
+                for index in range(3)
+            ]
+        )
+        db.commit()
+
+        headers = auth_headers(user, company)
+        all_response = client.get(
+            "/api/v1/custom/categorias",
+            headers=headers,
+        )
+
+        assert all_response.status_code == 200
+        all_categories = all_response.json()
+        assert len(all_categories) == 3
+
+        page_response = client.get(
+            "/api/v1/custom/categorias",
+            params={"limit": 1, "offset": 1},
+            headers=headers,
+        )
+
+        assert page_response.status_code == 200
+        assert page_response.json() == all_categories[1:2]
+
+        invalid_limit_response = client.get(
+            "/api/v1/custom/categorias",
+            params={"limit": 101},
+            headers=headers,
+        )
+
+        assert invalid_limit_response.status_code == 422
+
+    finally:
+        cleanup(db, records)
+        db.close()

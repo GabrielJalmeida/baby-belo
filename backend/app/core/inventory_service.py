@@ -217,6 +217,8 @@ class InventarioService:
     def list_inventories(
         db: Session,
         empresa_id: int,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[Inventario]:
         statement = (
             select(Inventario)
@@ -226,6 +228,12 @@ class InventarioService:
                 Inventario.id.desc(),
             )
         )
+
+        if limit is not None:
+            statement = statement.limit(limit)
+
+        if offset:
+            statement = statement.offset(offset)
 
         return list(db.scalars(statement).all())
 
@@ -246,6 +254,8 @@ class InventarioService:
         db: Session,
         empresa_id: int,
         inventario_id: int,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[InventarioItem]:
         statement = (
             select(InventarioItem)
@@ -255,6 +265,12 @@ class InventarioService:
             )
             .order_by(InventarioItem.item_id)
         )
+
+        if limit is not None:
+            statement = statement.limit(limit)
+
+        if offset:
+            statement = statement.offset(offset)
 
         return list(db.scalars(statement).all())
 
