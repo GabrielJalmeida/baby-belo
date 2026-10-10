@@ -10,7 +10,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-FastAPI-3776AB?style=for-the-badge&logo=fastapi&logoColor=white" alt="Python e FastAPI" />
   <img src="https://img.shields.io/badge/PostgreSQL-database-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL" />
-  <img src="https://img.shields.io/badge/Testes-362%20passed-22C55E?style=for-the-badge&logo=pytest&logoColor=white" alt="362 testes aprovados na última validação" />
+  <img src="https://img.shields.io/badge/Testes-399%20passed-22C55E?style=for-the-badge&logo=pytest&logoColor=white" alt="399 testes aprovados na última validação" />
   <img src="https://img.shields.io/badge/Status-Backend%20em%20hardening-F59E0B?style=for-the-badge&logo=github&logoColor=white" alt="Backend em hardening" />
 </p>
 
@@ -30,7 +30,7 @@ O **Estoque Flex** é um sistema web de gerenciamento de estoque pensado para pe
 
 > **CORE controla o estoque. CUSTOM descreve o estoque. AUTH protege o acesso.**
 
-O backend já reúne as APIs de empresas, unidades, itens, movimentações, consultas de estoque, inventários e personalização de itens. O próximo marco é a revisão de hardening; o frontend e os testes E2E ainda estão pendentes.
+O backend reúne as APIs de empresas, unidades, itens, movimentações, consultas de estoque, inventários e personalização de itens. A paginação com limites validados já foi implementada nas listas de saldos e estoque baixo, inventários, itens de inventário, categorias, campos e opções de campos. A auditoria de hardening continua em andamento; o frontend e os testes E2E ainda estão pendentes.
 
 ## ✨ Capacidades implementadas
 
@@ -125,8 +125,9 @@ A direção é intencional: **CORE não depende de AUTH nem de CUSTOM**. Operaç
 | AUTH e multiempresa | ✅ Implementados | JWT, usuário atual, membership, papéis e contexto empresarial. |
 | APIs CORE | ✅ Implementadas | Empresas, unidades, itens, movimentações, estoque e inventário. |
 | API CUSTOM | ✅ Implementada | Categorias, campos, opções, valores e associação com itens. |
-| Suíte de testes | ✅ 362 aprovados | Última execução local registrada no checkpoint `e18bc18`. |
-| Hardening consolidado | 🟡 Próxima etapa | Revisar segurança, consistência, concorrência, erros e qualidade. |
+| Paginação das listas | ✅ Implementada parcialmente | Estoque, inventários, categorias, campos e opções; parâmetros `limit` e `offset` validados nas rotas contempladas. |
+| Suíte de testes | ✅ 399 aprovados | Última execução local: `399 passed in 15.20s`, validada no checkpoint `b0f5dd0`. |
+| Hardening consolidado | 🟡 Em andamento | Paginação adicionada em listas selecionadas; auditoria das APIs e verificações transversais continuam. |
 | Frontend React/Vite | ⏳ Pendente | Interface ainda não integrada ao backend. |
 | Testes E2E | ⏳ Pendente | Validar os principais fluxos ponta a ponta. |
 | Deploy | ⏳ Pendente | Após hardening, frontend e validação E2E. |
@@ -239,9 +240,9 @@ A API usa o prefixo `/api/v1`. Os principais grupos são:
 | Unidades | Cadastro e manutenção de unidades de medida |
 | Itens | Cadastro e consulta de itens |
 | Movimentações | Registro de entradas, saídas e ajustes |
-| Estoque | Consulta de saldos e identificação de estoque baixo |
-| Inventários | Contagem física e itens de inventário |
-| CUSTOM | Categorias, campos, opções, valores e categoria dos itens |
+| Estoque | Consulta paginada de saldos e identificação de estoque baixo (`limit` e `offset`) |
+| Inventários | Contagem física e itens de inventário; listas paginadas sem truncar o snapshot no detalhe |
+| CUSTOM | Categorias, campos, opções, valores e categoria dos itens; listas de categorias, campos e opções paginadas |
 
 Consulte `/docs` para ver os caminhos, parâmetros, schemas e respostas efetivamente registrados pela aplicação.
 
@@ -254,7 +255,7 @@ Consulte `/docs` para ver os caminhos, parâmetros, schemas e respostas efetivam
 - Segredos mantidos em variáveis de ambiente; `.env` não deve ser versionado.
 - Tokens completos, senhas e `SECRET_KEY` não devem aparecer em logs.
 
-O hardening final permanece como etapa explícita antes da preparação para produção. O foco inclui revisão de permissões e isolamento, concorrência e transações de estoque, mapeamento consistente de conflitos para HTTP 409, paginação com limites máximos, CORS restrito, limites de payload, logging estruturado sem dados sensíveis e quality gates de lint/testes.
+O hardening final permanece como etapa explícita antes da preparação para produção. Nesta etapa foi adicionada paginação com limites validados (`limit` entre 1 e 100 e `offset` não negativo) às listas de saldos e estoque baixo, inventários, itens de inventário, categorias, campos e opções de campos. A auditoria ainda deve revisar os endpoints restantes, permissões e isolamento, concorrência e transações de estoque, mapeamento de conflitos para HTTP 409, CORS, limites de payload, logging sem dados sensíveis e quality gates de lint/testes.
 
 ## 🗺️ Roadmap
 
@@ -267,7 +268,7 @@ flowchart LR
     E --> F[Deploy e demonstração]
 ```
 
-**Próximo marco:** auditar as APIs já implementadas e executar o hardening consolidado antes de integrar o frontend. O objetivo é validar permissões, isolamento multiempresa, integridade referencial, semântica de PATCH, conflitos, concorrência de estoque e consistência dos inventários.
+**Próximo marco:** continuar a auditoria de hardening das APIs restantes antes de integrar o frontend. O foco é concluir a verificação de permissões e isolamento multiempresa, avaliar as listas ainda não paginadas quando necessário, revisar integridade referencial e semântica de PATCH, e consolidar as verificações de conflitos, concorrência de estoque e consistência dos inventários.
 
 ## 📚 Recursos do projeto
 
