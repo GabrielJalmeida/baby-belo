@@ -761,3 +761,29 @@ def test_patch_option_rejects_null_for_non_nullable_fields():
     finally:
         cleanup(db, records)
         db.close()
+
+
+def test_patch_option_rejects_non_positive_id():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+        headers = auth_headers(user, company)
+
+        for opcao_id in (0, -1):
+            response = client.patch(
+                f"/api/v1/custom/opcoes/{opcao_id}",
+                json={"valor": "Valor atualizado"},
+                headers=headers,
+            )
+
+            assert response.status_code == 422, (
+                f"ID {opcao_id}: recebeu "
+                f"{response.status_code}: {response.text}"
+            )
+
+    finally:
+        cleanup(db, records)
+        db.close()

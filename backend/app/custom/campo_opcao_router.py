@@ -163,8 +163,8 @@ def get_option(
     response_model=CampoOpcaoRead,
 )
 def update_option(
-    opcao_id: int,
-    data: CampoOpcaoUpdate,
+    opcao_id: int = Path(gt=0),
+    data: CampoOpcaoUpdate = ...,
     membership=Depends(require_role("OWNER", "OPERATOR")),
     db: Session = Depends(get_db),
 ) -> CampoOpcaoRead:
