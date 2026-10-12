@@ -187,3 +187,49 @@ def test_company_context_rejects_inactive_membership():
 
     finally:
         db.close()
+
+
+def test_company_context_validates_company_header_format_and_range():
+    db = SessionLocal()
+    user = None
+    company = None
+    membership = None
+
+    try:
+        user, company, membership = create_user_and_company(db)
+        token = create_access_token(subject=str(user.id))
+
+        cases = (
+            ("0", 400),
+            ("-1", 400),
+            ("abc", 422),
+        )
+
+        for company_id, expected_status in cases:
+            response = client.get(
+                "/test-company",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "X-Company-ID": company_id,
+                },
+            )
+
+            assert response.status_code == expected_status, (
+                f"X-Company-ID={company_id!r}: "
+                f"esperava {expected_status}, "
+                f"recebeu {response.status_code}. "
+                f"Resposta: {response.text}"
+            )
+
+    finally:
+        if membership is not None:
+            db.delete(membership)
+
+        if company is not None:
+            db.delete(company)
+
+        if user is not None:
+            db.delete(user)
+
+        db.commit()
+        db.close()
