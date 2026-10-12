@@ -744,3 +744,61 @@ def test_update_item_unit_returns_conflict_while_inventory_is_open():
         )
 
         assert response.status_code == 409, response.text
+
+
+def test_inventory_routes_reject_non_positive_path_ids():
+    with api_context() as context:
+        headers = context["headers"]
+
+        requests = [
+            ("GET", "/api/v1/inventarios/0", None),
+            ("GET", "/api/v1/inventarios/-1", None),
+            ("GET", "/api/v1/inventarios/0/itens", None),
+            ("GET", "/api/v1/inventarios/-1/itens", None),
+            (
+                "PUT",
+                "/api/v1/inventarios/0/itens/1/contagem",
+                {"quantidade_contada": "1.0000"},
+            ),
+            ("POST", "/api/v1/inventarios/0/concluir", None),
+            ("POST", "/api/v1/inventarios/-1/cancelar", None),
+        ]
+
+        for method, path, payload in requests:
+            response = client.request(
+                method,
+                path,
+                headers=headers,
+                json=payload,
+            )
+
+            assert response.status_code == 422, (
+                f"{method} {path}: esperado 422, "
+                f"recebido {response.status_code}: {response.text}"
+            )
+
+        inventory_response = client.post(
+            "/api/v1/inventarios",
+            json={},
+            headers=headers,
+        )
+        assert inventory_response.status_code == 201, (
+            inventory_response.text
+        )
+
+        inventory_id = inventory_response.json()["id"]
+
+        for item_id in (0, -1):
+            response = client.put(
+                (
+                    f"/api/v1/inventarios/{inventory_id}"
+                    f"/itens/{item_id}/contagem"
+                ),
+                json={"quantidade_contada": "1.0000"},
+                headers=headers,
+            )
+
+            assert response.status_code == 422, (
+                f"ID do item {item_id}: esperado 422, "
+                f"recebido {response.status_code}: {response.text}"
+            )

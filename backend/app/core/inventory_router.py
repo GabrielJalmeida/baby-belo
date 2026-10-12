@@ -1,4 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from typing import Annotated
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Path,
+    Query,
+    status,
+)
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
@@ -25,6 +34,7 @@ from app.shared.company_dependencies import (
 )
 from app.shared.database import get_db
 
+PositivePathId = Annotated[int, Path(gt=0)]
 
 router = APIRouter(
     prefix="/api/v1/inventarios",
@@ -190,7 +200,7 @@ def list_inventories(
     response_model=InventarioDetalheResponse,
 )
 def get_inventory(
-    inventario_id: int,
+    inventario_id: PositivePathId,
     membership=Depends(get_current_company_membership),
     db: Session = Depends(get_db),
 ) -> InventarioDetalheResponse:
@@ -218,7 +228,7 @@ def get_inventory(
     response_model=list[InventarioItemResponse],
 )
 def list_inventory_items(
-    inventario_id: int,
+    inventario_id: PositivePathId,
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     membership=Depends(get_current_company_membership),
@@ -250,8 +260,8 @@ def list_inventory_items(
     response_model=InventarioItemResponse,
 )
 def record_inventory_count(
-    inventario_id: int,
-    item_id: int,
+    inventario_id: PositivePathId,
+    item_id: PositivePathId,
     data: InventarioContagemUpdate,
     membership=Depends(
         require_role("OWNER", "OPERATOR"),
@@ -290,7 +300,7 @@ def record_inventory_count(
     response_model=InventarioResponse,
 )
 def complete_inventory(
-    inventario_id: int,
+    inventario_id: PositivePathId,
     membership=Depends(
         require_role("OWNER", "OPERATOR"),
     ),
@@ -326,7 +336,7 @@ def complete_inventory(
     response_model=InventarioResponse,
 )
 def cancel_inventory(
-    inventario_id: int,
+    inventario_id: PositivePathId,
     membership=Depends(
         require_role("OWNER", "OPERATOR"),
     ),
