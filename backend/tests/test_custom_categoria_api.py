@@ -563,3 +563,31 @@ def test_patch_category_rejects_null_active_flag_without_changing_category():
     finally:
         cleanup(db, records)
         db.close()
+
+
+def test_category_routes_reject_non_positive_path_ids():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+        headers = auth_headers(user, company)
+
+        for categoria_id in (0, -1):
+            get_response = client.get(
+                f"/api/v1/custom/categorias/{categoria_id}",
+                headers=headers,
+            )
+            assert get_response.status_code == 422, get_response.text
+
+            patch_response = client.patch(
+                f"/api/v1/custom/categorias/{categoria_id}",
+                json={"ativo": False},
+                headers=headers,
+            )
+            assert patch_response.status_code == 422, patch_response.text
+
+    finally:
+        cleanup(db, records)
+        db.close()

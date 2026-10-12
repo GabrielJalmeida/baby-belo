@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -126,7 +128,7 @@ def list_fields(
     response_model=CampoRead,
 )
 def get_field(
-    campo_id: int,
+    campo_id: Annotated[int, Path(gt=0)],
     membership=Depends(get_current_company_membership),
     db: Session = Depends(get_db),
 ) -> CampoRead:
@@ -150,7 +152,7 @@ def get_field(
     response_model=CampoRead,
 )
 def update_field(
-    campo_id: int,
+    campo_id: Annotated[int, Path(gt=0)],
     data: CampoUpdate,
     membership=Depends(require_role("OWNER", "OPERATOR")),
     db: Session = Depends(get_db),

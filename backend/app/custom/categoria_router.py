@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Path, status, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -100,7 +102,7 @@ def list_categories(
     response_model=CategoriaRead,
 )
 def get_category(
-    categoria_id: int,
+    categoria_id: Annotated[int, Path(gt=0)],
     membership=Depends(get_current_company_membership),
     db: Session = Depends(get_db),
 ) -> CategoriaRead:
@@ -124,7 +126,7 @@ def get_category(
     response_model=CategoriaRead,
 )
 def update_category(
-    categoria_id: int,
+    categoria_id: Annotated[int, Path(gt=0)],
     data: CategoriaUpdate,
     membership=Depends(require_role("OWNER", "OPERATOR")),
     db: Session = Depends(get_db),
