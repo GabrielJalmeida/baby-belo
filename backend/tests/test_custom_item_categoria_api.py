@@ -480,3 +480,30 @@ def test_get_item_category_does_not_expose_another_company_item():
     finally:
         cleanup(db, records)
         db.close()
+
+
+def test_assign_category_rejects_non_positive_item_ids():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+        categoria = create_category(db, company)
+        headers = auth_headers(user, company)
+
+        for item_id in (0, -1):
+            response = client.put(
+                f"/api/v1/custom/itens/{item_id}/categoria",
+                json={"categoria_id": categoria.id},
+                headers=headers,
+            )
+
+            assert response.status_code == 422, (
+                f"ID do item {item_id}: "
+                f"recebeu {response.status_code}: {response.text}"
+            )
+
+    finally:
+        cleanup(db, records)
+        db.close()

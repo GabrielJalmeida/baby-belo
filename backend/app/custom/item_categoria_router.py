@@ -56,8 +56,8 @@ def get_item_category(
     response_model=ItemCategoriaRead,
 )
 def assign_category(
-    item_id: int,
-    data: ItemCategoriaCreate,
+    item_id: int = Path(gt=0),
+    data: ItemCategoriaCreate = ...,
     membership=Depends(require_role("OWNER", "OPERATOR")),
     db: Session = Depends(get_db),
 ) -> ItemCategoriaRead:
