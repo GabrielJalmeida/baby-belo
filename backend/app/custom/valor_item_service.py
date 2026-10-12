@@ -284,6 +284,8 @@ class ValorItemService:
         db: Session,
         empresa_id: int,
         item_id: int,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[ValorItem]:
         ValorItemService._buscar_item(
             db=db,
@@ -297,6 +299,12 @@ class ValorItemService:
             .where(ValorItem.item_id == item_id)
             .order_by(ValorItem.id)
         )
+
+        if limit is not None:
+            statement = statement.limit(limit)
+
+        if offset:
+            statement = statement.offset(offset)
 
         return list(db.scalars(statement).all())
 

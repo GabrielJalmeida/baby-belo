@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -129,6 +129,8 @@ def create_value(
 )
 def list_values(
     item_id: int = Path(gt=0),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     membership=Depends(get_current_company_membership),
     db: Session = Depends(get_db),
 ) -> list[ValorItemRead]:
@@ -137,6 +139,8 @@ def list_values(
             db=db,
             empresa_id=membership.empresa_id,
             item_id=item_id,
+            limit=limit,
+            offset=offset,
         )
 
     except ItemValorNaoEncontradoError as error:

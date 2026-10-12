@@ -723,6 +723,7 @@ def test_cannot_update_value_from_another_company():
         cleanup(db, records)
         db.close()
 
+
 def test_cannot_change_field_type_when_values_exist():
     db = SessionLocal()
     records = []
@@ -761,6 +762,7 @@ def test_cannot_change_field_type_when_values_exist():
     finally:
         cleanup(db, records)
         db.close()
+
 
 def test_create_list_value_rejects_option_from_another_field():
     db = SessionLocal()
@@ -815,6 +817,108 @@ def test_create_list_value_rejects_option_from_another_field():
             )
         )
         assert valor_id is None
+
+    finally:
+        cleanup(db, records)
+        db.close()
+
+
+def test_list_values_supports_pagination():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        item, categoria, campo_inicial, _ = create_item_context(
+            db,
+            company,
+        )
+
+        campos = [campo_inicial]
+
+        for index in range(1, 4):
+            campo = Campo(
+                empresa_id=company.id,
+                categoria_id=categoria.id,
+                nome=f"Campo paginacao {index} {uuid4().hex}",
+                tipo_dado="TEXTO_CURTO",
+                obrigatorio=False,
+                configuracao={},
+                ordem_exibicao=index,
+                ativo=True,
+            )
+            db.add(campo)
+            campos.append(campo)
+
+        db.commit()
+
+        valores_criados = []
+
+        for index, campo in enumerate(campos):
+            response = create_value_request(
+                user,
+                company,
+                item,
+                campo,
+                {"valor_texto": f"valor-{index}"},
+            )
+
+            assert response.status_code == 201, response.text
+            valores_criados.append(response.json())
+
+        response = client.get(
+            f"/api/v1/custom/itens/{item.id}/valores"
+            "?limit=2&offset=1",
+            headers=auth_headers(user, company),
+        )
+
+        assert response.status_code == 200
+
+        body = response.json()
+
+        assert len(body) == 2
+        assert [valor["id"] for valor in body] == [
+            valores_criados[1]["id"],
+            valores_criados[2]["id"],
+        ]
+        assert [valor["valor_texto"] for valor in body] == [
+            "valor-1",
+            "valor-2",
+        ]
+
+    finally:
+        cleanup(db, records)
+        db.close()
+
+def test_list_values_rejects_invalid_pagination():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        item, _, _, _ = create_item_context(db, company)
+        headers = auth_headers(user, company)
+
+        queries_invalidas = (
+            "limit=0",
+            "limit=101",
+            "offset=-1",
+        )
+
+        for query in queries_invalidas:
+            response = client.get(
+                f"/api/v1/custom/itens/{item.id}/valores?{query}",
+                headers=headers,
+            )
+
+            assert response.status_code == 422, (
+                f"Query inválida não rejeitada: {query}; "
+                f"status recebido: {response.status_code}"
+            )
 
     finally:
         cleanup(db, records)

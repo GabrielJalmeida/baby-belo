@@ -357,7 +357,7 @@ def test_create_list_value_rejects_invalid_option():
     db.add.assert_not_called()
 
 
-def test_list_values_checks_item_ownership():
+def test_list_values_checks_item_ownership_and_pagination():
     db = MagicMock(spec=Session)
     db.scalar.return_value = criar_item()
     esperado = [criar_valor()]
@@ -368,13 +368,18 @@ def test_list_values_checks_item_ownership():
         db=db,
         empresa_id=10,
         item_id=3,
+        limit=2,
+        offset=1,
     )
 
     assert resultado == esperado
 
     sql = str(db.scalars.call_args.args[0])
+
     assert "custom.valores_item.item_id" in sql
     assert "ORDER BY custom.valores_item.id" in sql
+    assert "LIMIT" in sql
+    assert "OFFSET" in sql
 
 
 def test_get_value_scopes_by_company():
