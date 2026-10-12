@@ -679,3 +679,68 @@ def test_inventory_item_list_supports_pagination_without_truncating_detail():
         )
         assert detail_response.status_code == 200
         assert len(detail_response.json()["itens"]) == 101
+
+
+def test_create_item_returns_conflict_while_inventory_is_open():
+    with api_context() as context:
+        inventory_response = client.post(
+            "/api/v1/inventarios",
+            json={},
+            headers=context["headers"],
+        )
+
+        assert inventory_response.status_code == 201, (
+            inventory_response.text
+        )
+
+        response = client.post(
+            "/api/v1/itens",
+            json={
+                "unidade_id": context["unit_id"],
+                "nome": "Item criado durante inventário",
+            },
+            headers=context["headers"],
+        )
+
+        assert response.status_code == 409, response.text
+
+
+def test_update_item_unit_returns_conflict_while_inventory_is_open():
+    with api_context() as context:
+        with Session(
+            bind=context["connection"],
+            join_transaction_mode="create_savepoint",
+        ) as db:
+            alternative_unit = Unidade(
+                empresa_id=context["company_id"],
+                nome=f"Unidade alternativa {uuid4().hex[:8]}",
+                simbolo="UN",
+                permite_decimal=True,
+                ativo=True,
+            )
+
+            db.add(alternative_unit)
+            db.flush()
+
+            alternative_unit_id = alternative_unit.id
+            db.commit()
+
+        inventory_response = client.post(
+            "/api/v1/inventarios",
+            json={},
+            headers=context["headers"],
+        )
+
+        assert inventory_response.status_code == 201, (
+            inventory_response.text
+        )
+
+        item_id = context["item_ids"][0]
+
+        response = client.patch(
+            f"/api/v1/itens/{item_id}",
+            json={"unidade_id": alternative_unit_id},
+            headers=context["headers"],
+        )
+
+        assert response.status_code == 409, response.text
