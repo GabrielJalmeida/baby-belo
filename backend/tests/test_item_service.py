@@ -1,6 +1,9 @@
-
 from decimal import Decimal
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 from uuid import uuid4
+
+from sqlalchemy.dialects import postgresql
 
 import pytest
 
@@ -265,3 +268,50 @@ def test_update_item_changes_only_submitted_fields():
         if company is not None:
             cleanup_company(db, company)
         db.close()
+
+
+def test_update_item_uses_company_no_key_update_lock():
+    db = MagicMock()
+
+    company = SimpleNamespace(id=10, ativo=True)
+    item = SimpleNamespace(
+        id=20,
+        empresa_id=10,
+        unidade_id=30,
+        nome="Papel A4",
+        descricao=None,
+        estoque_minimo=Decimal("0.0000"),
+        ativo=True,
+    )
+    unit = SimpleNamespace(
+        id=30,
+        empresa_id=10,
+        permite_decimal=True,
+        ativo=True,
+    )
+
+    db.scalar.side_effect = [
+        company,
+        item,
+        unit,
+        None,
+    ]
+
+    updated = ItemService.update_item(
+        db=db,
+        empresa_id=10,
+        item_id=20,
+        changes={"nome": "Papel A4 atualizado"},
+    )
+
+    assert updated is item
+    assert item.nome == "Papel A4 atualizado"
+
+    company_query = db.scalar.call_args_list[0].args[0]
+    compiled_query = str(
+        company_query.compile(dialect=postgresql.dialect())
+    )
+
+    assert compiled_query.rstrip().endswith("FOR NO KEY UPDATE")
+
+    db.flush.assert_called_once()

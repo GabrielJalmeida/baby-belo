@@ -109,6 +109,9 @@ class ItemService:
                 "a esta empresa."
             )
 
+        # Mantém a ordem de bloqueio consistente com a alteração
+        # de unidades e a abertura de inventários.
+
         company = db.scalar(
             select(Empresa)
             .where(Empresa.id == empresa_id)
@@ -213,8 +216,8 @@ class ItemService:
         item_id: int,
         changes: dict[str, object],
     ) -> Item | None:
-        # Mantém a ordem de bloqueio consistente com a alteração
-        # de unidades e a abertura de inventários.
+        # O bloqueio exclusivo serializa esta alteração com operações
+        # que alteram a precisão das unidades e abrem inventários.
         company = db.scalar(
             select(Empresa)
             .where(Empresa.id == empresa_id)
@@ -223,6 +226,7 @@ class ItemService:
 
         if company is None or not company.ativo:
             return None
+
         item = db.scalar(
             select(Item)
             .where(
@@ -244,9 +248,6 @@ class ItemService:
                 empresa_id=empresa_id,
                 item_id=item_id,
             )
-
-        requested_unit_change = "unidade_id" in changes
-        target_unit_id = changes.get("unidade_id", item.unidade_id)
 
         unit = ItemService._get_unit(
             db=db,
