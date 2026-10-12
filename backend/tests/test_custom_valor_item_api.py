@@ -923,3 +923,62 @@ def test_list_values_rejects_invalid_pagination():
     finally:
         cleanup(db, records)
         db.close()
+
+
+def test_patch_value_rejects_null_without_changing_persisted_value():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+        item, _, campo, _ = create_item_context(db, company)
+
+        created = create_value_request(
+            user,
+            company,
+            item,
+            campo,
+            {"valor_texto": "Madeira"},
+        )
+        assert created.status_code == 201, created.text
+
+        valor_id = created.json()["id"]
+
+        invalid_payloads = [
+            {"valor_texto": None},
+            {"valor_inteiro": None},
+            {"valor_decimal": None},
+            {"valor_monetario": None},
+            {"valor_booleano": None},
+            {"valor_data": None},
+            {"opcao_id": None},
+        ]
+
+        for payload in invalid_payloads:
+            response = client.patch(
+                f"/api/v1/custom/valores/{valor_id}",
+                json=payload,
+                headers=auth_headers(user, company),
+            )
+
+            assert response.status_code == 422, (
+                f"Payload {payload}: "
+                f"recebeu {response.status_code}: {response.text}"
+            )
+
+            db.expire_all()
+            persisted = db.get(ValorItem, valor_id)
+
+            assert persisted is not None
+            assert persisted.valor_texto == "Madeira"
+            assert persisted.valor_inteiro is None
+            assert persisted.valor_decimal is None
+            assert persisted.valor_monetario is None
+            assert persisted.valor_booleano is None
+            assert persisted.valor_data is None
+            assert persisted.opcao_id is None
+
+    finally:
+        cleanup(db, records)
+        db.close()
