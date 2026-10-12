@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import DBAPIError
 
@@ -106,7 +106,7 @@ def list_units(
     response_model=UnidadeResponse,
 )
 def get_unit(
-    unit_id: int,
+    unit_id: int = Path(gt=0),
     membership=Depends(
         get_current_company_membership,
     ),
@@ -132,8 +132,8 @@ def get_unit(
     response_model=UnidadeResponse,
 )
 def update_unit(
-    unit_id: int,
-    data: UnidadeUpdate,
+    unit_id: int = Path(gt=0),
+    data: UnidadeUpdate = ...,
     membership=Depends(
         require_role("OWNER", "OPERATOR"),
     ),

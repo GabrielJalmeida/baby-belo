@@ -739,3 +739,43 @@ def test_create_unit_whitespace_name_returns_unprocessable_entity():
 
     finally:
         db.close()
+
+
+def test_unit_routes_reject_non_positive_path_ids():
+    db = SessionLocal()
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        token = create_access_token(subject=str(user.id))
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "X-Company-ID": str(company.id),
+        }
+
+        for unit_id in (0, -1):
+            get_response = client.get(
+                f"/api/v1/unidades/{unit_id}",
+                headers=headers,
+            )
+
+            assert get_response.status_code == 422, (
+                f"GET unidade ID {unit_id}: "
+                f"recebeu {get_response.status_code}: "
+                f"{get_response.text}"
+            )
+
+            patch_response = client.patch(
+                f"/api/v1/unidades/{unit_id}",
+                json={"nome": "Unidade atualizada"},
+                headers=headers,
+            )
+
+            assert patch_response.status_code == 422, (
+                f"PATCH unidade ID {unit_id}: "
+                f"recebeu {patch_response.status_code}: "
+                f"{patch_response.text}"
+            )
+
+    finally:
+        cleanup(db, user, company, membership)
+        db.close()
