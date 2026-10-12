@@ -179,8 +179,8 @@ def get_value(
     response_model=ValorItemRead,
 )
 def update_value(
-    valor_id: int,
-    data: ValorItemUpdate,
+    valor_id: int = Path(gt=0),
+    data: ValorItemUpdate = ...,
     membership=Depends(require_role("OWNER", "OPERATOR")),
     db: Session = Depends(get_db),
 ) -> ValorItemRead:
