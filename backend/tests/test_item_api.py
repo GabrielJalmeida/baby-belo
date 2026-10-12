@@ -459,3 +459,84 @@ def test_cannot_update_item_from_another_company():
             cleanup_context(db, *second_context[:3])
 
         db.close()
+
+
+def test_patch_item_with_empty_payload_keeps_values_unchanged():
+    db = SessionLocal()
+    context = None
+
+    try:
+        context = create_context(db)
+        _, _, _, unit, headers = context
+
+        item = Item(
+            empresa_id=context[1].id,
+            unidade_id=unit.id,
+            nome="Papel A4",
+            descricao="Descrição original",
+            estoque_minimo=Decimal("3.0000"),
+            ativo=True,
+        )
+        db.add(item)
+        db.commit()
+
+        response = client.patch(
+            f"/api/v1/itens/{item.id}",
+            json={},
+            headers=headers,
+        )
+
+        assert response.status_code == 200, response.text
+
+        body = response.json()
+        assert body["nome"] == "Papel A4"
+        assert body["descricao"] == "Descrição original"
+        assert Decimal(str(body["estoque_minimo"])) == Decimal("3.0000")
+        assert body["unidade_id"] == unit.id
+        assert body["ativo"] is True
+
+        db.refresh(item)
+        assert item.nome == "Papel A4"
+        assert item.descricao == "Descrição original"
+
+    finally:
+        if context is not None:
+            cleanup_context(db, *context[:3])
+        db.close()
+
+
+def test_patch_item_rejects_null_name_without_changing_item():
+    db = SessionLocal()
+    context = None
+
+    try:
+        context = create_context(db)
+        _, company, _, unit, headers = context
+
+        item = Item(
+            empresa_id=company.id,
+            unidade_id=unit.id,
+            nome="Papel A4",
+            descricao="Descrição original",
+            estoque_minimo=Decimal("3.0000"),
+            ativo=True,
+        )
+        db.add(item)
+        db.commit()
+
+        response = client.patch(
+            f"/api/v1/itens/{item.id}",
+            json={"nome": None},
+            headers=headers,
+        )
+
+        assert response.status_code == 422, response.text
+
+        db.refresh(item)
+        assert item.nome == "Papel A4"
+        assert item.descricao == "Descrição original"
+
+    finally:
+        if context is not None:
+            cleanup_context(db, *context[:3])
+        db.close()
