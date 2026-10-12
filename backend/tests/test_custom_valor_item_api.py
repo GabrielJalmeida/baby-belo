@@ -446,6 +446,47 @@ def test_list_values_returns_only_values_for_requested_item():
         db.close()
 
 
+def test_list_values_does_not_expose_another_company_item():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user_a, company_a, membership_a = (
+            create_user_company_membership(db)
+        )
+        records.append((user_a, company_a, membership_a))
+
+        user_b, company_b, membership_b = (
+            create_user_company_membership(db)
+        )
+        records.append((user_b, company_b, membership_b))
+
+        item_b, _, campo_b, _ = create_item_context(
+            db,
+            company_b,
+        )
+
+        created = create_value_request(
+            user_b,
+            company_b,
+            item_b,
+            campo_b,
+            {"valor_texto": "Dado privado"},
+        )
+        assert created.status_code == 201
+
+        response = client.get(
+            f"/api/v1/custom/itens/{item_b.id}/valores",
+            headers=auth_headers(user_a, company_a),
+        )
+
+        assert response.status_code == 404
+
+    finally:
+        cleanup(db, records)
+        db.close()
+
+
 def test_get_value_does_not_expose_another_company_value():
     db = SessionLocal()
     records = []
