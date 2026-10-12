@@ -34,6 +34,9 @@ class CompanyApplicationService:
     def list_user_companies(
         db: Session,
         user_id: int,
+        *,
+        limit: int | None = None,
+        offset: int = 0,
     ) -> list[Empresa]:
         statement = (
             select(Empresa)
@@ -48,5 +51,10 @@ class CompanyApplicationService:
             )
             .order_by(Empresa.id)
         )
+
+        if limit is not None:
+            statement = statement.limit(limit)
+
+        statement = statement.offset(offset)
 
         return list(db.scalars(statement).all())

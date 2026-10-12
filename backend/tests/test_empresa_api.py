@@ -1,5 +1,7 @@
 from uuid import uuid4
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 from app.auth.models import EmpresaUsuario
@@ -168,3 +170,101 @@ def test_list_companies_rejects_unauthenticated_request():
     response = client.get("/api/v1/empresas")
 
     assert response.status_code == 401
+
+
+def test_list_companies_supports_pagination():
+    db = SessionLocal()
+    user = None
+    companies = []
+    memberships = []
+
+    try:
+        user = create_user(db, "paginate-companies")
+
+        for index in range(3):
+            company = Empresa(
+                nome=f"Empresa paginação {index} {uuid4().hex}",
+                ativo=True,
+            )
+            db.add(company)
+            companies.append(company)
+
+        db.flush()
+
+        for company in companies:
+            membership = EmpresaUsuario(
+                empresa_id=company.id,
+                usuario_id=user.id,
+                papel="OWNER",
+                ativo=True,
+            )
+            db.add(membership)
+            memberships.append(membership)
+
+        db.commit()
+
+        expected_ids = sorted(company.id for company in companies)
+        token = create_access_token(subject=str(user.id))
+
+        response = client.get(
+            "/api/v1/empresas?limit=2&offset=1",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert response.status_code == 200
+        assert [
+            company["id"] for company in response.json()
+        ] == expected_ids[1:3]
+
+    finally:
+        try:
+            for membership in memberships:
+                db.delete(membership)
+
+            db.flush()
+
+            for company in companies:
+                db.delete(company)
+
+            db.flush()
+
+            if user is not None:
+                delete_user(db, user)
+
+        finally:
+            db.close()
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "limit=0",
+        "limit=101",
+        "offset=-1",
+    ],
+)
+
+
+def test_list_companies_rejects_invalid_pagination(query):
+    db = SessionLocal()
+    user = None
+
+    try:
+        user = create_user(db, "invalid-company-pagination")
+        db.commit()
+
+        token = create_access_token(subject=str(user.id))
+
+        response = client.get(
+            f"/api/v1/empresas?{query}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert response.status_code == 422
+
+    finally:
+        try:
+            if user is not None:
+                delete_user(db, user)
+        finally:
+            db.close()
