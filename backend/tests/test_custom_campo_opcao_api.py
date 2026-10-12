@@ -578,7 +578,7 @@ def test_viewer_cannot_update_option():
         db.close()
 
 
-def test_patch_empty_option_payload_is_rejected():
+def test_patch_empty_option_payload_is_noop():
     db = SessionLocal()
     records = []
 
@@ -602,7 +602,16 @@ def test_patch_empty_option_payload_is_rejected():
             headers=auth_headers(user, company),
         )
 
-        assert response.status_code == 422
+        assert response.status_code == 200
+
+        body = response.json()
+        assert body["id"] == opcao.id
+        assert body["valor"] == "Madeira"
+        assert body["ativo"] is True
+
+        db.refresh(opcao)
+        assert opcao.valor == "Madeira"
+        assert opcao.ativo is True
 
     finally:
         cleanup(db, records)

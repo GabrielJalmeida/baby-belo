@@ -208,15 +208,18 @@ def test_update_category_rejects_duplicate_name():
     db.flush.assert_not_called()
 
 
-def test_update_category_rejects_empty_changes():
+def test_update_category_returns_existing_category_for_empty_changes():
     db = MagicMock(spec=Session)
+    categoria = criar_categoria()
+    db.scalar.return_value = categoria
 
-    with pytest.raises(ValueError, match="atualizar"):
-        CategoriaService.update_category(
-            db=db,
-            empresa_id=1,
-            categoria_id=10,
-            changes={},
-        )
+    result = CategoriaService.update_category(
+        db=db,
+        empresa_id=1,
+        categoria_id=10,
+        changes={},
+    )
 
-    db.scalar.assert_not_called()
+    assert result is categoria
+    db.scalar.assert_called_once()
+    db.flush.assert_not_called()

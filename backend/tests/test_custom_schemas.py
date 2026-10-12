@@ -46,9 +46,10 @@ def test_categoria_create_rejects_blank_name():
         CategoriaCreate(nome="   ")
 
 
-def test_categoria_update_rejects_empty_payload():
-    with pytest.raises(ValidationError):
-        CategoriaUpdate()
+def test_categoria_update_accepts_empty_payload():
+    schema = CategoriaUpdate()
+
+    assert schema.model_dump(exclude_unset=True) == {}
 
 
 def test_categoria_update_rejects_null_name_when_supplied():
@@ -120,9 +121,10 @@ def test_campo_update_accepts_partial_payload():
     assert schema.ativo is False
 
 
-def test_campo_update_rejects_empty_payload():
-    with pytest.raises(ValidationError):
-        CampoUpdate()
+def test_campo_update_accepts_empty_payload():
+    schema = CampoUpdate()
+
+    assert schema.model_dump(exclude_unset=True) == {}
 
 
 # ============================================================
@@ -152,9 +154,10 @@ def test_campo_opcao_update_accepts_deactivation():
     assert schema.ativo is False
 
 
-def test_campo_opcao_update_rejects_empty_payload():
-    with pytest.raises(ValidationError):
-        CampoOpcaoUpdate()
+def test_campo_opcao_update_accepts_empty_payload():
+    schema = CampoOpcaoUpdate()
+
+    assert schema.model_dump(exclude_unset=True) == {}
 
 
 # ============================================================

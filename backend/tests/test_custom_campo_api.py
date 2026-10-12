@@ -487,7 +487,7 @@ def test_patch_field_updates_only_supplied_attributes():
         db.close()
 
 
-def test_patch_empty_field_payload_is_rejected():
+def test_patch_empty_field_payload_is_noop():
     db = SessionLocal()
     records = []
 
@@ -519,7 +519,16 @@ def test_patch_empty_field_payload_is_rejected():
             headers=auth_headers(user, company),
         )
 
-        assert response.status_code == 422
+        assert response.status_code == 200
+
+        body = response.json()
+        assert body["id"] == campo.id
+        assert body["nome"] == "Cor"
+        assert body["tipo_dado"] == "TEXTO_CURTO"
+
+        db.refresh(campo)
+        assert campo.nome == "Cor"
+        assert campo.tipo_dado == "TEXTO_CURTO"
 
     finally:
         cleanup(db, records)

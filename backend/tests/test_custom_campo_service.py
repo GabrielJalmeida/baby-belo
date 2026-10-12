@@ -325,15 +325,18 @@ def test_update_field_returns_none_when_field_is_not_found():
     db.flush.assert_not_called()
 
 
-def test_update_field_rejects_empty_changes():
+def test_update_field_returns_existing_field_for_empty_changes():
     db = MagicMock(spec=Session)
+    campo = criar_campo()
+    db.scalar.return_value = campo
 
-    with pytest.raises(ValueError, match="atualizar"):
-        CampoService.update_field(
-            db=db,
-            empresa_id=10,
-            campo_id=5,
-            changes={},
-        )
+    result = CampoService.update_field(
+        db=db,
+        empresa_id=10,
+        campo_id=5,
+        changes={},
+    )
 
-    db.scalar.assert_not_called()
+    assert result is campo
+    db.scalar.assert_called_once()
+    db.flush.assert_not_called()

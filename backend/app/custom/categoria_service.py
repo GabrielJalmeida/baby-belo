@@ -125,11 +125,6 @@ class CategoriaService:
     ) -> Categoria | None:
         campos_permitidos = {"nome", "descricao", "ativo"}
 
-        if not changes:
-            raise ValueError(
-                "Informe ao menos um campo para atualizar."
-            )
-
         campos_invalidos = set(changes) - campos_permitidos
 
         if campos_invalidos:
@@ -145,6 +140,9 @@ class CategoriaService:
 
         if categoria is None:
             return None
+
+        if not changes:
+            return categoria
 
         if "nome" in changes:
             nome_recebido = changes["nome"]

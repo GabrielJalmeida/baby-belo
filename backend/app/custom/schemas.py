@@ -87,10 +87,13 @@ class CategoriaUpdate(CustomInput):
     @model_validator(mode="after")
     def validar_atualizacao(self):
         if not self.model_fields_set:
-            raise ValueError("Informe ao menos um campo para atualizar.")
+            return self
 
         if "nome" in self.model_fields_set and self.nome is None:
             raise ValueError("O nome não pode ser nulo.")
+
+        if "ativo" in self.model_fields_set and self.ativo is None:
+            raise ValueError("O campo 'ativo' não pode ser nulo.")
 
         return self
 
@@ -145,7 +148,7 @@ class CampoUpdate(CustomInput):
     @model_validator(mode="after")
     def validar_atualizacao(self):
         if not self.model_fields_set:
-            raise ValueError("Informe ao menos um campo para atualizar.")
+            return self
 
         for nome in self.model_fields_set:
             if getattr(self, nome) is None:
@@ -206,7 +209,7 @@ class CampoOpcaoUpdate(CustomInput):
     @model_validator(mode="after")
     def validar_atualizacao(self):
         if not self.model_fields_set:
-            raise ValueError("Informe ao menos um campo para atualizar.")
+            return self
 
         for nome in self.model_fields_set:
             if getattr(self, nome) is None:

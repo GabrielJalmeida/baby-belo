@@ -190,11 +190,6 @@ class CampoService:
             "ativo",
         }
 
-        if not changes:
-            raise ValueError(
-                "Informe ao menos um campo para atualizar."
-            )
-
         campos_invalidos = set(changes) - campos_permitidos
 
         if campos_invalidos:
@@ -211,6 +206,9 @@ class CampoService:
 
         if campo is None:
             return None
+
+        if not changes:
+            return campo
 
         nova_categoria_id = campo.categoria_id
 

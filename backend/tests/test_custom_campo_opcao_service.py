@@ -289,15 +289,18 @@ def test_update_option_returns_none_when_not_found():
     db.flush.assert_not_called()
 
 
-def test_update_option_rejects_empty_changes():
+def test_update_option_returns_existing_option_for_empty_changes():
     db = MagicMock(spec=Session)
+    opcao = criar_opcao()
+    db.scalar.return_value = opcao
 
-    with pytest.raises(ValueError, match="atualizar"):
-        CampoOpcaoService.update_option(
-            db=db,
-            empresa_id=10,
-            opcao_id=20,
-            changes={},
-        )
+    result = CampoOpcaoService.update_option(
+        db=db,
+        empresa_id=10,
+        opcao_id=20,
+        changes={},
+    )
 
-    db.scalar.assert_not_called()
+    assert result is opcao
+    db.scalar.assert_called_once()
+    db.flush.assert_not_called()

@@ -180,11 +180,6 @@ class CampoOpcaoService:
             "ativo",
         }
 
-        if not changes:
-            raise ValueError(
-                "Informe ao menos um campo para atualizar."
-            )
-
         campos_invalidos = set(changes) - campos_permitidos
 
         if campos_invalidos:
@@ -200,6 +195,9 @@ class CampoOpcaoService:
 
         if opcao is None:
             return None
+
+        if not changes:
+            return opcao
 
         if "valor" in changes:
             valor_recebido = changes["valor"]
