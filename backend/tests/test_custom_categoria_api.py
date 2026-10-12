@@ -527,3 +527,39 @@ def test_list_categories_supports_pagination_and_limit_maximum():
     finally:
         cleanup(db, records)
         db.close()
+
+
+def test_patch_category_rejects_null_active_flag_without_changing_category():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        categoria = Categoria(
+            empresa_id=company.id,
+            nome="Ferramentas",
+            descricao="Descrição original",
+            ativo=True,
+        )
+        db.add(categoria)
+        db.commit()
+        db.refresh(categoria)
+
+        response = client.patch(
+            f"/api/v1/custom/categorias/{categoria.id}",
+            json={"ativo": None},
+            headers=auth_headers(user, company),
+        )
+
+        assert response.status_code == 422, response.text
+
+        db.refresh(categoria)
+        assert categoria.ativo is True
+        assert categoria.nome == "Ferramentas"
+        assert categoria.descricao == "Descrição original"
+
+    finally:
+        cleanup(db, records)
+        db.close()

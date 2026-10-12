@@ -86,9 +86,6 @@ class CategoriaUpdate(CustomInput):
 
     @model_validator(mode="after")
     def validar_atualizacao(self):
-        if not self.model_fields_set:
-            return self
-
         if "nome" in self.model_fields_set and self.nome is None:
             raise ValueError("O nome não pode ser nulo.")
 
