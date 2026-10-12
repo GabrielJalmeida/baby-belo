@@ -823,3 +823,69 @@ def test_list_fields_supports_pagination_and_limit_maximum():
     finally:
         cleanup(db, records)
         db.close()
+
+
+def test_patch_field_rejects_null_for_non_nullable_fields():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        categoria = Categoria(
+            empresa_id=company.id,
+            nome="Ferramentas",
+            ativo=True,
+        )
+        db.add(categoria)
+        db.flush()
+
+        campo = Campo(
+            empresa_id=company.id,
+            categoria_id=categoria.id,
+            nome="Cor",
+            tipo_dado="TEXTO_CURTO",
+            obrigatorio=False,
+            configuracao={},
+            ordem_exibicao=1,
+            ativo=True,
+        )
+        db.add(campo)
+        db.commit()
+        db.refresh(campo)
+
+        invalid_payloads = [
+            {"categoria_id": None},
+            {"nome": None},
+            {"tipo_dado": None},
+            {"obrigatorio": None},
+            {"configuracao": None},
+            {"ordem_exibicao": None},
+            {"ativo": None},
+        ]
+
+        for payload in invalid_payloads:
+            response = client.patch(
+                f"/api/v1/custom/campos/{campo.id}",
+                json=payload,
+                headers=auth_headers(user, company),
+            )
+
+            assert response.status_code == 422, (
+                f"Payload {payload}: "
+                f"recebeu {response.status_code}: {response.text}"
+            )
+
+            db.refresh(campo)
+            assert campo.categoria_id == categoria.id
+            assert campo.nome == "Cor"
+            assert campo.tipo_dado == "TEXTO_CURTO"
+            assert campo.obrigatorio is False
+            assert campo.configuracao == {}
+            assert campo.ordem_exibicao == 1
+            assert campo.ativo is True
+
+    finally:
+        cleanup(db, records)
+        db.close()
