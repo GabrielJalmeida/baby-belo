@@ -37,9 +37,10 @@ def test_valor_item_update_accepts_option_id():
     assert schema.opcao_id == 4
 
 
-def test_valor_item_update_rejects_empty_payload():
-    with pytest.raises(ValidationError):
-        ValorItemUpdate()
+def test_valor_item_update_accepts_empty_payload():
+    schema = ValorItemUpdate()
+
+    assert schema.model_dump(exclude_unset=True) == {}
 
 
 def test_valor_item_update_rejects_multiple_values():

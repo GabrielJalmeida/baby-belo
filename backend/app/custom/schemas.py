@@ -306,6 +306,7 @@ class ValorItemRead(CustomRead):
     valor_booleano: bool | None
     valor_data: date | None
 
+
 class ValorItemUpdate(CustomInput):
     valor_texto: str | None = None
     valor_inteiro: int | None = Field(
@@ -340,6 +341,9 @@ class ValorItemUpdate(CustomInput):
         }
 
         informados = campos_valor.intersection(self.model_fields_set)
+
+        if not informados:
+            return self
 
         if len(informados) != 1:
             raise ValueError(

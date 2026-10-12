@@ -597,7 +597,8 @@ def test_viewer_cannot_update_value():
         db.close()
 
 
-def test_patch_empty_value_payload_is_rejected():
+
+def test_patch_empty_value_payload_is_noop():
     db = SessionLocal()
     records = []
 
@@ -611,13 +612,22 @@ def test_patch_empty_value_payload_is_rejected():
         )
         assert created.status_code == 201
 
+        valor_id = created.json()["id"]
+
         response = client.patch(
-            f"/api/v1/custom/valores/{created.json()['id']}",
+            f"/api/v1/custom/valores/{valor_id}",
             json={},
             headers=auth_headers(user, company),
         )
 
-        assert response.status_code == 422
+        assert response.status_code == 200
+        assert response.json()["valor_texto"] == "Madeira"
+
+        db.expire_all()
+        persisted = db.get(ValorItem, valor_id)
+
+        assert persisted is not None
+        assert persisted.valor_texto == "Madeira"
 
     finally:
         cleanup(db, records)

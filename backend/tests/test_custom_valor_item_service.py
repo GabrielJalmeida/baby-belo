@@ -458,15 +458,18 @@ def test_update_value_returns_none_for_foreign_or_missing_value():
     db.flush.assert_not_called()
 
 
-def test_update_value_rejects_empty_changes():
+def test_update_value_with_empty_changes_preserves_existing_value():
     db = MagicMock(spec=Session)
+    registro = criar_valor(valor_texto="Antigo")
+    db.scalar.return_value = registro
 
-    with pytest.raises(ValueError, match="exatamente um"):
-        ValorItemService.update_value(
-            db=db,
-            empresa_id=10,
-            valor_id=12,
-            changes={},
-        )
+    resultado = ValorItemService.update_value(
+        db=db,
+        empresa_id=10,
+        valor_id=12,
+        changes={},
+    )
 
-    db.scalar.assert_not_called()
+    assert resultado is registro
+    assert registro.valor_texto == "Antigo"
+    db.flush.assert_not_called()

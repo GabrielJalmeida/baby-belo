@@ -317,6 +317,7 @@ class ValorItemService:
 
         return db.scalar(statement)
 
+
     @staticmethod
     def update_value(
         db: Session,
@@ -324,8 +325,6 @@ class ValorItemService:
         valor_id: int,
         changes: Mapping[str, object],
     ) -> ValorItem | None:
-        coluna, valor = ValorItemService._extrair_valor(changes)
-
         registro = ValorItemService.get_value(
             db=db,
             empresa_id=empresa_id,
@@ -334,6 +333,11 @@ class ValorItemService:
 
         if registro is None:
             return None
+
+        if not changes:
+            return registro
+
+        coluna, valor = ValorItemService._extrair_valor(changes)
 
         campo = ValorItemService._validar_contexto(
             db=db,
