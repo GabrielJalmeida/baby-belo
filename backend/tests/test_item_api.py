@@ -540,3 +540,41 @@ def test_patch_item_rejects_null_name_without_changing_item():
         if context is not None:
             cleanup_context(db, *context[:3])
         db.close()
+
+
+def test_item_routes_reject_non_positive_path_ids():
+    db = SessionLocal()
+    context = None
+
+    try:
+        context = create_context(db)
+        headers = context[4]
+
+        for item_id in (0, -1):
+            get_response = client.get(
+                f"/api/v1/itens/{item_id}",
+                headers=headers,
+            )
+
+            assert get_response.status_code == 422, (
+                f"GET item ID {item_id}: "
+                f"recebeu {get_response.status_code}: "
+                f"{get_response.text}"
+            )
+
+            patch_response = client.patch(
+                f"/api/v1/itens/{item_id}",
+                json={"nome": "Item atualizado"},
+                headers=headers,
+            )
+
+            assert patch_response.status_code == 422, (
+                f"PATCH item ID {item_id}: "
+                f"recebeu {patch_response.status_code}: "
+                f"{patch_response.text}"
+            )
+
+    finally:
+        if context is not None:
+            cleanup_context(db, *context[:3])
+        db.close()

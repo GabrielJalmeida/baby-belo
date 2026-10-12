@@ -1,5 +1,6 @@
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
@@ -173,7 +174,7 @@ def list_items(
     response_model=ItemResponse,
 )
 def get_item(
-    item_id: int,
+    item_id: Annotated[int, Path(gt=0)],
     membership=Depends(get_current_company_membership),
     db: Session = Depends(get_db),
 ) -> ItemResponse:
@@ -197,7 +198,7 @@ def get_item(
     response_model=ItemResponse,
 )
 def update_item(
-    item_id: int,
+    item_id: Annotated[int, Path(gt=0)],
     data: ItemUpdate,
     membership=Depends(
         require_role("OWNER", "OPERATOR"),
