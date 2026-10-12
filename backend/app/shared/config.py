@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     secret_key: str
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    access_token_expire_minutes: int = Field(default=30, gt=0)
 
     model_config = SettingsConfigDict(
         env_file=BACKEND_DIR / ".env",
@@ -43,6 +43,14 @@ class Settings(BaseSettings):
             )
 
         return normalized
+
+    @field_validator("secret_key")
+    @classmethod
+    def validate_secret_key(cls, secret_key: str) -> str:
+        if not secret_key.strip():
+            raise ValueError("SECRET_KEY não pode ficar vazia.")
+
+        return secret_key
 
 
 settings = Settings()
