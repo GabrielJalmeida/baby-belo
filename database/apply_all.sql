@@ -1,3 +1,4 @@
+
 \set ON_ERROR_STOP on
 
 -- ============================================================
@@ -16,6 +17,7 @@
 \ir core/007_create_inventario_itens.sql
 \ir core/008_create_view_saldos.sql
 \ir core/009_create_view_estoque_baixo.sql
+\ir core/010_unique_open_inventory_per_company.sql
 
 \echo 'Aplicando AUTH...'
 

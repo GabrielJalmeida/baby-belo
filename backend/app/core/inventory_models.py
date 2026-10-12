@@ -23,6 +23,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.shared.base import Base
 
 
+
 class Inventario(Base):
     __tablename__ = "inventarios"
 
@@ -57,6 +58,12 @@ class Inventario(Base):
             "empresa_id",
             "id",
             name="uq_inventarios_empresa_id",
+        ),
+        Index(
+            "uq_inventarios_empresa_aberto",
+            "empresa_id",
+            unique=True,
+            postgresql_where=text("status = 'ABERTO'"),
         ),
         Index(
             "idx_inventarios_empresa_status",

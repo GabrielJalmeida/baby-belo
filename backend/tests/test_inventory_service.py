@@ -1,4 +1,4 @@
-
+from sqlalchemy.exc import IntegrityError
 from decimal import Decimal
 from uuid import uuid4
 from sqlalchemy import select
@@ -13,6 +13,7 @@ from app.core.inventory_service import (
     ItemBloqueadoPorInventarioAbertoError,
     QuantidadeContadaFracionariaError,
 )
+from app.core.inventory_models import Inventario
 from app.core.item_models import Item
 from app.core.item_service import ItemService
 from app.core.models import Empresa
@@ -115,6 +116,49 @@ def test_inventory_snapshots_balances_and_only_active_items():
         assert rows[0].saldo_sistema == Decimal("8.0000")
         assert rows[0].quantidade_contada is None
         assert rows[0].diferenca is None
+
+    finally:
+        rollback_context(db)
+
+
+def test_database_rejects_second_open_inventory_for_company():
+    db = SessionLocal()
+
+    try:
+        company, _, _, _ = create_context(db)
+
+        first_inventory = InventarioService.create_inventory(
+            db=db,
+            empresa_id=company.id,
+        )
+
+        assert first_inventory.status == "ABERTO"
+
+        duplicate_inventory = Inventario(
+            empresa_id=company.id,
+            status="ABERTO",
+        )
+        db.add(duplicate_inventory)
+
+        with pytest.raises(IntegrityError) as error:
+            db.flush()
+
+        original_error = error.value.orig
+        sqlstate = (
+            getattr(original_error, "sqlstate", None)
+            or getattr(original_error, "pgcode", None)
+        )
+
+        assert sqlstate == "23505"
+
+        diagnostic = getattr(original_error, "diag", None)
+        constraint_name = getattr(
+            diagnostic,
+            "constraint_name",
+            None,
+        )
+
+        assert constraint_name == "uq_inventarios_empresa_aberto"
 
     finally:
         rollback_context(db)
