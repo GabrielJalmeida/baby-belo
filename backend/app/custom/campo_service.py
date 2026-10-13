@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.custom.models import Campo, Categoria, ValorItem
-
+from app.custom.config_validation import validar_configuracao
 
 class CampoCategoriaNaoEncontradaError(ValueError):
     """A categoria não existe, está inativa ou pertence a outra empresa."""
@@ -100,9 +100,7 @@ class CampoService:
 
         nome = CampoService._normalizar_nome(nome)
         configuracao = configuracao if configuracao is not None else {}
-
-        if not isinstance(configuracao, dict):
-            raise ValueError("A configuração precisa ser um objeto JSON.")
+        configuracao = validar_configuracao(configuracao)
 
         if CampoService._nome_existe(
             db=db,
@@ -277,12 +275,7 @@ class CampoService:
             )
 
         if "configuracao" in changes:
-            configuracao = changes["configuracao"]
-
-            if not isinstance(configuracao, dict):
-                raise ValueError(
-                    "A configuração precisa ser um objeto JSON."
-                )
+            validar_configuracao(changes["configuracao"])
 
         for nome, valor in changes.items():
             if nome in {"categoria_id", "nome"}:

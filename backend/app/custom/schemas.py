@@ -14,6 +14,9 @@ from app.shared.limits import (
     DESCRICAO_MAX_CHARS,
     TEXTO_LONGO_MAX_CHARS,
 )
+from app.custom.config_validation import (
+    validar_configuracao as validar_configuracao_payload,
+)
 
 TipoDado = Literal[
     "TEXTO_CURTO",
@@ -139,6 +142,14 @@ class CampoCreate(CustomInput):
             return valor.strip()
         return valor
 
+    @field_validator("configuracao")
+    @classmethod
+    def validar_configuracao_campo(
+        cls,
+        valor: dict[str, Any],
+    ) -> dict[str, Any]:
+        return validar_configuracao_payload(valor)
+
 
 class CampoUpdate(CustomInput):
     categoria_id: int | None = None
@@ -155,6 +166,17 @@ class CampoUpdate(CustomInput):
         if isinstance(valor, str):
             return valor.strip()
         return valor
+
+    @field_validator("configuracao")
+    @classmethod
+    def validar_configuracao_campo(
+        cls,
+        valor: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
+        if valor is None:
+            return None
+
+        return validar_configuracao_payload(valor)
 
     @model_validator(mode="after")
     def validar_atualizacao(self):

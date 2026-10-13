@@ -1,4 +1,5 @@
 from uuid import uuid4
+import pytest
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -10,7 +11,7 @@ from app.custom.models import Campo, CampoOpcao, Categoria, ItemCategoria, Valor
 from app.main import app
 from app.shared.database import SessionLocal
 from app.shared.security import create_access_token
-
+from app.shared.limits import CAMPO_CONFIGURACAO_MAX_BYTES
 
 client = TestClient(app)
 
@@ -913,6 +914,114 @@ def test_field_routes_reject_non_positive_path_ids():
                 headers=headers,
             )
             assert patch_response.status_code == 422, patch_response.text
+
+    finally:
+        cleanup(db, records)
+        db.close()
+
+
+@pytest.mark.parametrize(
+    ("comprimento", "status_esperado"),
+    [
+        (CAMPO_CONFIGURACAO_MAX_BYTES - 8, 201),
+        (CAMPO_CONFIGURACAO_MAX_BYTES - 7, 422),
+    ],
+)
+def test_create_field_enforces_configuration_size(
+    comprimento,
+    status_esperado,
+):
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        categoria = Categoria(
+            empresa_id=company.id,
+            nome=f"Categoria {uuid4().hex}",
+            ativo=True,
+        )
+        db.add(categoria)
+        db.commit()
+        db.refresh(categoria)
+
+        configuracao = {"x": "A" * comprimento}
+
+        response = client.post(
+            "/api/v1/custom/campos",
+            json={
+                "categoria_id": categoria.id,
+                "nome": f"Campo {uuid4().hex}",
+                "tipo_dado": "TEXTO_CURTO",
+                "configuracao": configuracao,
+            },
+            headers=auth_headers(user, company),
+        )
+
+        assert response.status_code == status_esperado, response.text
+
+        if status_esperado == 201:
+            assert response.json()["configuracao"] == configuracao
+
+    finally:
+        cleanup(db, records)
+        db.close()
+
+
+def test_patch_field_rejects_oversized_configuration_without_changing_value():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        categoria = Categoria(
+            empresa_id=company.id,
+            nome=f"Categoria {uuid4().hex}",
+            ativo=True,
+        )
+        db.add(categoria)
+        db.commit()
+        db.refresh(categoria)
+
+        headers = auth_headers(user, company)
+
+        created = client.post(
+            "/api/v1/custom/campos",
+            json={
+                "categoria_id": categoria.id,
+                "nome": f"Campo {uuid4().hex}",
+                "tipo_dado": "TEXTO_CURTO",
+                "configuracao": {"label": "Original"},
+            },
+            headers=headers,
+        )
+
+        assert created.status_code == 201, created.text
+        campo_id = created.json()["id"]
+
+        response = client.patch(
+            f"/api/v1/custom/campos/{campo_id}",
+            json={
+                "configuracao": {
+                    "x": "A" * (CAMPO_CONFIGURACAO_MAX_BYTES - 7),
+                },
+            },
+            headers=headers,
+        )
+
+        assert response.status_code == 422, response.text
+
+        persisted = client.get(
+            f"/api/v1/custom/campos/{campo_id}",
+            headers=headers,
+        )
+
+        assert persisted.status_code == 200, persisted.text
+        assert persisted.json()["configuracao"] == {"label": "Original"}
 
     finally:
         cleanup(db, records)
