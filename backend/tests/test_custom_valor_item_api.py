@@ -1,3 +1,5 @@
+import pytest
+
 from decimal import Decimal
 from uuid import uuid4
 
@@ -1004,6 +1006,109 @@ def test_patch_value_rejects_non_positive_id():
                 f"ID {valor_id}: recebeu "
                 f"{response.status_code}: {response.text}"
             )
+
+    finally:
+        cleanup(db, records)
+        db.close()
+
+
+@pytest.mark.parametrize(
+    ("tipo_dado", "comprimento", "status_esperado"),
+    [
+        ("TEXTO_CURTO", 255, 201),
+        ("TEXTO_CURTO", 256, 422),
+        ("TEXTO_LONGO", 10_000, 201),
+        ("TEXTO_LONGO", 10_001, 422),
+    ],
+)
+def test_create_text_value_enforces_length_by_type(
+    tipo_dado,
+    comprimento,
+    status_esperado,
+):
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        item, _, campo, _ = create_item_context(
+            db,
+            company,
+            tipo_dado=tipo_dado,
+        )
+
+        texto = "A" * comprimento
+
+        response = create_value_request(
+            user,
+            company,
+            item,
+            campo,
+            {"valor_texto": texto},
+        )
+
+        assert response.status_code == status_esperado, response.text
+
+        if status_esperado == 201:
+            assert response.json()["valor_texto"] == texto
+
+    finally:
+        cleanup(db, records)
+        db.close()
+
+
+@pytest.mark.parametrize(
+    ("tipo_dado", "comprimento"),
+    [
+        ("TEXTO_CURTO", 256),
+        ("TEXTO_LONGO", 10_001),
+    ],
+)
+def test_patch_rejects_oversized_text_without_changing_saved_value(
+    tipo_dado,
+    comprimento,
+):
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        item, _, campo, _ = create_item_context(
+            db,
+            company,
+            tipo_dado=tipo_dado,
+        )
+
+        created = create_value_request(
+            user,
+            company,
+            item,
+            campo,
+            {"valor_texto": "Valor original"},
+        )
+
+        assert created.status_code == 201, created.text
+        valor_id = created.json()["id"]
+
+        response = client.patch(
+            f"/api/v1/custom/valores/{valor_id}",
+            json={"valor_texto": "A" * comprimento},
+            headers=auth_headers(user, company),
+        )
+
+        assert response.status_code == 422, response.text
+
+        persisted = client.get(
+            f"/api/v1/custom/valores/{valor_id}",
+            headers=auth_headers(user, company),
+        )
+
+        assert persisted.status_code == 200, persisted.text
+        assert persisted.json()["valor_texto"] == "Valor original"
 
     finally:
         cleanup(db, records)

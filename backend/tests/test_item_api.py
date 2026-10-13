@@ -1,3 +1,4 @@
+import pytest
 
 from decimal import Decimal
 from uuid import uuid4
@@ -573,6 +574,92 @@ def test_item_routes_reject_non_positive_path_ids():
                 f"recebeu {patch_response.status_code}: "
                 f"{patch_response.text}"
             )
+
+    finally:
+        if context is not None:
+            cleanup_context(db, *context[:3])
+        db.close()
+
+
+@pytest.mark.parametrize(
+    ("comprimento", "status_esperado"),
+    [
+        (2_000, 201),
+        (2_001, 422),
+    ],
+)
+def test_create_item_enforces_description_length(
+    comprimento,
+    status_esperado,
+):
+    db = SessionLocal()
+    context = None
+
+    try:
+        context = create_context(db)
+        _, _, _, unit, headers = context
+
+        response = client.post(
+            "/api/v1/itens",
+            json={
+                "unidade_id": unit.id,
+                "nome": f"Item {uuid4().hex}",
+                "descricao": "D" * comprimento,
+            },
+            headers=headers,
+        )
+
+        assert response.status_code == status_esperado, response.text
+
+        if status_esperado == 201:
+            assert len(response.json()["descricao"]) == 2_000
+
+    finally:
+        if context is not None:
+            cleanup_context(db, *context[:3])
+        db.close()
+
+
+def test_patch_item_rejects_oversized_description_without_changing_value():
+    db = SessionLocal()
+    context = None
+
+    try:
+        context = create_context(db)
+        _, _, _, unit, headers = context
+
+        item = Item(
+            empresa_id=context[1].id,
+            unidade_id=unit.id,
+            nome=f"Item {uuid4().hex}",
+            descricao="Descrição inicial",
+            estoque_minimo=Decimal("0"),
+            ativo=True,
+        )
+        db.add(item)
+        db.commit()
+        db.refresh(item)
+
+        accepted = client.patch(
+            f"/api/v1/itens/{item.id}",
+            json={"descricao": "D" * 2_000},
+            headers=headers,
+        )
+        assert accepted.status_code == 200, accepted.text
+
+        rejected = client.patch(
+            f"/api/v1/itens/{item.id}",
+            json={"descricao": "D" * 2_001},
+            headers=headers,
+        )
+        assert rejected.status_code == 422, rejected.text
+
+        persisted = client.get(
+            f"/api/v1/itens/{item.id}",
+            headers=headers,
+        )
+        assert persisted.status_code == 200, persisted.text
+        assert len(persisted.json()["descricao"]) == 2_000
 
     finally:
         if context is not None:

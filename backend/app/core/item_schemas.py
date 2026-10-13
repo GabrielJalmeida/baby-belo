@@ -1,13 +1,16 @@
-
 from decimal import Decimal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.shared.limits import DESCRICAO_MAX_CHARS
 
 class ItemCreate(BaseModel):
     unidade_id: int = Field(gt=0)
     nome: str = Field(min_length=1, max_length=160)
-    descricao: str | None = None
+    descricao: str | None = Field(
+        default=None,
+        max_length=DESCRICAO_MAX_CHARS,
+    )
     estoque_minimo: Decimal = Field(
         default=Decimal("0"),
         ge=0,
@@ -45,7 +48,10 @@ class ItemUpdate(BaseModel):
         min_length=1,
         max_length=160,
     )
-    descricao: str | None = None
+    descricao: str | None = Field(
+        default=None,
+        max_length=DESCRICAO_MAX_CHARS,
+    )
     estoque_minimo: Decimal | None = Field(
         default=None,
         ge=0,

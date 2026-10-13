@@ -1,3 +1,5 @@
+import pytest
+
 from sqlalchemy import event
 from app.core.movement_models import Movimentacao
 from contextlib import contextmanager
@@ -802,3 +804,27 @@ def test_inventory_routes_reject_non_positive_path_ids():
                 f"ID do item {item_id}: esperado 422, "
                 f"recebido {response.status_code}: {response.text}"
             )
+
+
+@pytest.mark.parametrize(
+    ("comprimento", "status_esperado"),
+    [
+        (5_000, 201),
+        (5_001, 422),
+    ],
+)
+def test_create_inventory_enforces_observation_length(
+    comprimento,
+    status_esperado,
+):
+    with api_context() as context:
+        response = client.post(
+            "/api/v1/inventarios",
+            json={"observacao": "O" * comprimento},
+            headers=context["headers"],
+        )
+
+        assert response.status_code == status_esperado, response.text
+
+        if status_esperado == 201:
+            assert len(response.json()["observacao"]) == 5_000

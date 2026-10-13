@@ -1,3 +1,5 @@
+import pytest
+
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -587,6 +589,89 @@ def test_category_routes_reject_non_positive_path_ids():
                 headers=headers,
             )
             assert patch_response.status_code == 422, patch_response.text
+
+    finally:
+        cleanup(db, records)
+        db.close()
+
+
+@pytest.mark.parametrize(
+    ("comprimento", "status_esperado"),
+    [
+        (2_000, 201),
+        (2_001, 422),
+    ],
+)
+def test_create_category_enforces_description_length(
+    comprimento,
+    status_esperado,
+):
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        response = client.post(
+            "/api/v1/custom/categorias",
+            json={
+                "nome": f"Categoria {uuid4().hex}",
+                "descricao": "D" * comprimento,
+            },
+            headers=auth_headers(user, company),
+        )
+
+        assert response.status_code == status_esperado, response.text
+
+        if status_esperado == 201:
+            assert len(response.json()["descricao"]) == 2_000
+
+    finally:
+        cleanup(db, records)
+        db.close()
+
+
+def test_patch_category_rejects_oversized_description_without_changing_value():
+    db = SessionLocal()
+    records = []
+
+    try:
+        user, company, membership = create_user_company_membership(db)
+        records.append((user, company, membership))
+
+        categoria = Categoria(
+            empresa_id=company.id,
+            nome=f"Categoria {uuid4().hex}",
+            descricao="Descrição inicial",
+            ativo=True,
+        )
+        db.add(categoria)
+        db.commit()
+        db.refresh(categoria)
+
+        headers = auth_headers(user, company)
+
+        accepted = client.patch(
+            f"/api/v1/custom/categorias/{categoria.id}",
+            json={"descricao": "D" * 2_000},
+            headers=headers,
+        )
+        assert accepted.status_code == 200, accepted.text
+
+        rejected = client.patch(
+            f"/api/v1/custom/categorias/{categoria.id}",
+            json={"descricao": "D" * 2_001},
+            headers=headers,
+        )
+        assert rejected.status_code == 422, rejected.text
+
+        persisted = client.get(
+            f"/api/v1/custom/categorias/{categoria.id}",
+            headers=headers,
+        )
+        assert persisted.status_code == 200, persisted.text
+        assert len(persisted.json()["descricao"]) == 2_000
 
     finally:
         cleanup(db, records)

@@ -1,9 +1,10 @@
-
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
+
+from app.shared.limits import OBSERVACAO_MAX_CHARS
 
 
 TipoMovimentacao = Literal[
@@ -23,7 +24,10 @@ class MovimentacaoCreate(BaseModel):
         decimal_places=4,
     )
     motivo: str | None = Field(default=None, max_length=255)
-    observacao: str | None = None
+    observacao: str | None = Field(
+        default=None,
+        max_length=OBSERVACAO_MAX_CHARS,
+    )
     ocorrida_em: datetime | None = None
 
     @field_validator("motivo", mode="before")
@@ -66,7 +70,6 @@ class MovimentacaoCreate(BaseModel):
             )
 
         return value
-
 
 class MovimentacaoResponse(BaseModel):
     id: int

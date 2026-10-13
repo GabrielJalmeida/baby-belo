@@ -1,3 +1,5 @@
+import pytest
+
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from decimal import Decimal
@@ -636,3 +638,32 @@ def test_concurrent_stock_exits_cannot_overdraw_balance():
 
         finally:
             cleanup_db.close()
+
+
+@pytest.mark.parametrize(
+    ("comprimento", "status_esperado"),
+    [
+        (5_000, 201),
+        (5_001, 422),
+    ],
+)
+def test_create_movement_enforces_observation_length(
+    comprimento,
+    status_esperado,
+):
+    with api_context() as context:
+        response = client.post(
+            "/api/v1/movimentacoes",
+            json={
+                "item_id": context["item_id"],
+                "tipo": "ENTRADA",
+                "quantidade": "1.0000",
+                "observacao": "O" * comprimento,
+            },
+            headers=context["headers"],
+        )
+
+        assert response.status_code == status_esperado, response.text
+
+        if status_esperado == 201:
+            assert len(response.json()["observacao"]) == 5_000

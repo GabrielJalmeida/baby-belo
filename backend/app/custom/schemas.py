@@ -10,6 +10,10 @@ from pydantic import (
     model_validator,
 )
 
+from app.shared.limits import (
+    DESCRICAO_MAX_CHARS,
+    TEXTO_LONGO_MAX_CHARS,
+)
 
 TipoDado = Literal[
     "TEXTO_CURTO",
@@ -48,7 +52,10 @@ class CustomRead(BaseModel):
 
 class CategoriaCreate(CustomInput):
     nome: str = Field(min_length=1, max_length=120)
-    descricao: str | None = None
+    descricao: str | None = Field(
+        default=None,
+        max_length=DESCRICAO_MAX_CHARS,
+    )
 
     @field_validator("nome", mode="before")
     @classmethod
@@ -66,8 +73,15 @@ class CategoriaCreate(CustomInput):
 
 
 class CategoriaUpdate(CustomInput):
-    nome: str | None = Field(default=None, min_length=1, max_length=120)
-    descricao: str | None = None
+    nome: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=120,
+    )
+    descricao: str | None = Field(
+        default=None,
+        max_length=DESCRICAO_MAX_CHARS,
+    )
     ativo: bool | None = None
 
     @field_validator("nome", mode="before")
@@ -244,7 +258,10 @@ class ItemCategoriaRead(CustomRead):
 # ============================================================
 
 class ValorItemDados(CustomInput):
-    valor_texto: str | None = None
+    valor_texto: str | None = Field(
+        default=None,
+        max_length=TEXTO_LONGO_MAX_CHARS,
+    )
     valor_inteiro: int | None = Field(
         default=None,
         ge=-(2**63),
@@ -308,7 +325,10 @@ class ValorItemRead(CustomRead):
 
 
 class ValorItemUpdate(CustomInput):
-    valor_texto: str | None = None
+    valor_texto: str | None = Field(
+        default=None,
+        max_length=TEXTO_LONGO_MAX_CHARS,
+    )
     valor_inteiro: int | None = Field(
         default=None,
         ge=-(2**63),

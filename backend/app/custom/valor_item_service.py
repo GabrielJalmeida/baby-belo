@@ -5,7 +5,10 @@ from sqlalchemy.orm import Session
 
 from app.core.item_models import Item
 from app.custom.models import Campo, CampoOpcao, ItemCategoria, ValorItem
-
+from app.shared.limits import (
+    TEXTO_CURTO_MAX_CHARS,
+    TEXTO_LONGO_MAX_CHARS,
+)
 
 class ItemValorNaoEncontradoError(ValueError):
     """O item não existe, está inativo ou pertence a outra empresa."""
@@ -171,6 +174,38 @@ class ValorItemService:
             )
 
     @staticmethod
+    def _validar_comprimento_texto(
+        campo: Campo,
+        coluna: str,
+        valor: object,
+    ) -> None:
+        if coluna != "valor_texto":
+            return
+
+        limites = {
+            "TEXTO_CURTO": TEXTO_CURTO_MAX_CHARS,
+            "TEXTO_LONGO": TEXTO_LONGO_MAX_CHARS,
+        }
+
+        limite = limites.get(campo.tipo_dado)
+
+        if limite is None:
+            raise TipoValorIncompativelError(
+                "O campo não aceita um valor de texto."
+            )
+
+        if not isinstance(valor, str):
+            raise ValueError(
+                "O valor informado deve ser um texto."
+            )
+
+        if len(valor) > limite:
+            raise ValueError(
+                f"O campo {campo.tipo_dado} aceita no máximo "
+                f"{limite} caracteres."
+            )
+
+    @staticmethod
     def _validar_opcao(
         db: Session,
         campo_id: int,
@@ -246,6 +281,12 @@ class ValorItemService:
         ValorItemService._validar_tipo(
             campo=campo,
             coluna=coluna,
+        )
+
+        ValorItemService._validar_comprimento_texto(
+            campo=campo,
+            coluna=coluna,
+            valor=valor,
         )
 
         if coluna == "opcao_id":
@@ -357,6 +398,12 @@ class ValorItemService:
         ValorItemService._validar_tipo(
             campo=campo,
             coluna=coluna,
+        )
+
+        ValorItemService._validar_comprimento_texto(
+            campo=campo,
+            coluna=coluna,
+            valor=valor,
         )
 
         if coluna == "opcao_id":
