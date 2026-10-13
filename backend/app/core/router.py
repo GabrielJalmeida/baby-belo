@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.orm import Session
 
 from app.application.company_service import CompanyApplicationService
@@ -68,10 +70,8 @@ def list_companies(
     response_model=EmpresaResponse,
 )
 def get_company(
-    company_id: int,
-    membership=Depends(
-        get_current_company_membership,
-    ),
+    company_id: Annotated[int, Path(gt=0)],
+    membership=Depends(get_current_company_membership),
     db: Session = Depends(get_db),
 ) -> EmpresaResponse:
     if membership.empresa_id != company_id:
@@ -99,7 +99,7 @@ def get_company(
     response_model=EmpresaResponse,
 )
 def update_company(
-    company_id: int,
+    company_id: Annotated[int, Path(gt=0)],
     data: EmpresaUpdate,
     membership=Depends(
         require_role(
