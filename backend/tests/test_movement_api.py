@@ -1,17 +1,21 @@
-
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from decimal import Decimal
+from threading import Barrier
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.auth.models import EmpresaUsuario
+from app.auth.models import EmpresaUsuario, Usuario
 from app.auth.service import AuthService
 from app.core.item_models import Item
 from app.core.models import Empresa
+from app.core.movement_models import Movimentacao
+from app.core.movement_service import MovimentacaoService
 from app.core.unit_models import Unidade
 from app.main import app
-from app.shared.database import engine, get_db
+from app.shared.database import SessionLocal, engine, get_db
 from app.shared.security import create_access_token
 
 
@@ -436,3 +440,199 @@ def test_create_movement_rejects_invalid_quantity_precision_and_range():
 
         assert history_response.status_code == 200
         assert history_response.json() == []
+
+
+def test_concurrent_stock_exits_cannot_overdraw_balance():
+    setup_db = SessionLocal()
+
+    user_id = None
+    company_id = None
+    item_id = None
+    headers = None
+
+    try:
+        try:
+            user = AuthService.create_user(
+                db=setup_db,
+                nome=f"Usuário concorrência {uuid4().hex}",
+                email=f"movement-concurrency-{uuid4().hex}@example.com",
+                senha="senha-segura-123",
+            )
+            user_id = user.id
+
+            company = Empresa(
+                nome=f"Empresa concorrência {uuid4().hex}",
+                ativo=True,
+            )
+            setup_db.add(company)
+            setup_db.flush()
+            company_id = company.id
+
+            membership = EmpresaUsuario(
+                empresa_id=company.id,
+                usuario_id=user.id,
+                papel="OWNER",
+                ativo=True,
+            )
+
+            unit = Unidade(
+                empresa_id=company.id,
+                nome=f"Unidade {uuid4().hex[:12]}",
+                simbolo="UN",
+                permite_decimal=True,
+                ativo=True,
+            )
+            setup_db.add_all([membership, unit])
+            setup_db.flush()
+
+            item = Item(
+                empresa_id=company.id,
+                unidade_id=unit.id,
+                nome="Item teste de concorrência",
+                estoque_minimo=0,
+                ativo=True,
+            )
+            setup_db.add(item)
+            setup_db.flush()
+            item_id = item.id
+
+            headers = {
+                "Authorization": (
+                    f"Bearer {create_access_token(subject=str(user.id))}"
+                ),
+                "X-Company-ID": str(company.id),
+            }
+
+            setup_db.commit()
+
+            MovimentacaoService.create_movement(
+                db=setup_db,
+                empresa_id=company_id,
+                item_id=item_id,
+                tipo="ENTRADA",
+                quantidade=Decimal("10.0000"),
+                motivo="Saldo inicial do teste concorrente",
+            )
+            setup_db.commit()
+
+        except Exception:
+            setup_db.rollback()
+            raise
+
+    finally:
+        setup_db.close()
+
+    try:
+        barrier = Barrier(2)
+
+        def attempt_exit():
+            with TestClient(app) as concurrent_client:
+                barrier.wait(timeout=15)
+
+                response = concurrent_client.post(
+                    "/api/v1/movimentacoes",
+                    json={
+                        "item_id": item_id,
+                        "tipo": "SAIDA",
+                        "quantidade": "7.0000",
+                        "motivo": "Teste de saída concorrente",
+                    },
+                    headers=headers,
+                )
+
+                return response.status_code, response.json()
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [
+                executor.submit(attempt_exit),
+                executor.submit(attempt_exit),
+            ]
+            results = [
+                future.result(timeout=30)
+                for future in futures
+            ]
+
+        statuses = sorted(status for status, _ in results)
+
+        assert statuses == [201, 409], (
+            "Esperava uma saída aceita e outra rejeitada. "
+            f"Resultados: {results}"
+        )
+
+        conflict_body = next(
+            body
+            for status_code, body in results
+            if status_code == 409
+        )
+        assert conflict_body["detail"] == (
+            "Saldo insuficiente para registrar esta saída."
+        )
+
+        verify_db = SessionLocal()
+        try:
+            balance = MovimentacaoService.get_stock_balance(
+                db=verify_db,
+                empresa_id=company_id,
+                item_id=item_id,
+            )
+
+            movements = MovimentacaoService.list_movements(
+                db=verify_db,
+                empresa_id=company_id,
+                item_id=item_id,
+                limit=100,
+                offset=0,
+            )
+
+            assert balance == Decimal("3.0000")
+            assert movements is not None
+            assert len(movements) == 2
+            assert sum(
+                movement.tipo == "ENTRADA"
+                for movement in movements
+            ) == 1
+            assert sum(
+                movement.tipo == "SAIDA"
+                for movement in movements
+            ) == 1
+
+        finally:
+            verify_db.close()
+
+    finally:
+        cleanup_db = SessionLocal()
+        try:
+            if company_id is not None:
+                cleanup_db.query(Movimentacao).filter(
+                    Movimentacao.empresa_id == company_id
+                ).delete(synchronize_session=False)
+
+                cleanup_db.query(Item).filter(
+                    Item.empresa_id == company_id
+                ).delete(synchronize_session=False)
+
+                cleanup_db.query(EmpresaUsuario).filter(
+                    EmpresaUsuario.empresa_id == company_id
+                ).delete(synchronize_session=False)
+
+                cleanup_db.query(Unidade).filter(
+                    Unidade.empresa_id == company_id
+                ).delete(synchronize_session=False)
+
+                cleanup_db.query(Empresa).filter(
+                    Empresa.id == company_id
+                ).delete(synchronize_session=False)
+
+            if user_id is not None:
+                cleanup_db.query(Usuario).filter(
+                    Usuario.id == user_id
+                ).delete(synchronize_session=False)
+
+            cleanup_db.commit()
+
+        except Exception:
+            cleanup_db.rollback()
+            raise
+
+        finally:
+            cleanup_db.close()
