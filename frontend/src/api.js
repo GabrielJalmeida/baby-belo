@@ -193,6 +193,115 @@ export const api = {
     return request(`/api/v1/itens/${itemId}/saldo`, { companyId })
   },
 
+  inventories(companyId) {
+    return fetchAllPages('/api/v1/inventarios', { companyId })
+  },
+
+  createInventory(companyId, payload) {
+    return request('/api/v1/inventarios', {
+      method: 'POST', companyId, body: payload,
+    })
+  },
+
+  inventoryDetail(companyId, inventoryId) {
+    return request(`/api/v1/inventarios/${inventoryId}`, { companyId })
+  },
+
+  recordInventoryCount(companyId, inventoryId, itemId, quantity) {
+    return request(`/api/v1/inventarios/${inventoryId}/itens/${itemId}/contagem`, {
+      method: 'PUT', companyId, body: { quantidade_contada: quantity },
+    })
+  },
+
+  completeInventory(companyId, inventoryId) {
+    return request(`/api/v1/inventarios/${inventoryId}/concluir`, {
+      method: 'POST', companyId,
+    })
+  },
+
+  cancelInventory(companyId, inventoryId) {
+    return request(`/api/v1/inventarios/${inventoryId}/cancelar`, {
+      method: 'POST', companyId,
+    })
+  },
+
+  customCategories(companyId) {
+    return fetchAllPages('/api/v1/custom/categorias', { companyId })
+  },
+
+  createCustomCategory(companyId, payload) {
+    return request('/api/v1/custom/categorias', {
+      method: 'POST', companyId, body: payload,
+    })
+  },
+
+  updateCustomCategory(companyId, categoryId, payload) {
+    return request(`/api/v1/custom/categorias/${categoryId}`, {
+      method: 'PATCH', companyId, body: payload,
+    })
+  },
+
+  customFields(companyId, categoryId) {
+    return fetchAllPages(
+      `/api/v1/custom/campos?categoria_id=${encodeURIComponent(categoryId)}`,
+      { companyId },
+    )
+  },
+
+  createCustomField(companyId, payload) {
+    return request('/api/v1/custom/campos', {
+      method: 'POST', companyId, body: payload,
+    })
+  },
+
+  updateCustomField(companyId, fieldId, payload) {
+    return request(`/api/v1/custom/campos/${fieldId}`, {
+      method: 'PATCH', companyId, body: payload,
+    })
+  },
+
+  customOptions(companyId, fieldId) {
+    return fetchAllPages(`/api/v1/custom/campos/${fieldId}/opcoes`, { companyId })
+  },
+
+  createCustomOption(companyId, payload) {
+    return request('/api/v1/custom/opcoes', {
+      method: 'POST', companyId, body: payload,
+    })
+  },
+
+  updateCustomOption(companyId, optionId, payload) {
+    return request(`/api/v1/custom/opcoes/${optionId}`, {
+      method: 'PATCH', companyId, body: payload,
+    })
+  },
+
+  itemCategory(companyId, itemId) {
+    return request(`/api/v1/custom/itens/${itemId}/categoria`, { companyId })
+  },
+
+  assignItemCategory(companyId, itemId, categoryId) {
+    return request(`/api/v1/custom/itens/${itemId}/categoria`, {
+      method: 'PUT', companyId, body: { categoria_id: Number(categoryId) },
+    })
+  },
+
+  itemCustomValues(companyId, itemId) {
+    return fetchAllPages(`/api/v1/custom/itens/${itemId}/valores`, { companyId })
+  },
+
+  createItemCustomValue(companyId, itemId, payload) {
+    return request(`/api/v1/custom/itens/${itemId}/valores`, {
+      method: 'POST', companyId, body: payload,
+    })
+  },
+
+  updateItemCustomValue(companyId, valueId, payload) {
+    return request(`/api/v1/custom/valores/${valueId}`, {
+      method: 'PATCH', companyId, body: payload,
+    })
+  },
+
   stockBalances(companyId, signal) {
     return request('/api/v1/estoque/saldos?limit=8&offset=0', { companyId, signal })
   },

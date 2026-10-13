@@ -1,6 +1,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { ApiError, api } from './api.js'
+import ProductCustomFields from './ProductCustomFields.jsx'
 
 const PAGE_SIZE = 10
 
@@ -14,6 +15,71 @@ function formatQuantity(value) {
   return new Intl.NumberFormat('pt-BR', {
     maximumFractionDigits: 4,
   }).format(number)
+}
+
+
+function customRecordColumn(record) {
+  const columns = [
+    'valor_texto', 'valor_inteiro', 'valor_decimal',
+    'valor_monetario', 'valor_booleano', 'valor_data', 'opcao_id',
+  ]
+  return columns.find((column) => record[column] !== null && record[column] !== undefined) ?? null
+}
+
+function customRecordDraftValue(record) {
+  const column = customRecordColumn(record)
+  if (!column) return ''
+  return String(record[column])
+}
+
+function parseCustomFieldValue(field, rawValue) {
+  const text = String(rawValue ?? '').trim()
+  if (text === '') return null
+
+  if (field.tipo_dado === 'TEXTO_CURTO' || field.tipo_dado === 'TEXTO_LONGO') {
+    return { valor_texto: text }
+  }
+  if (field.tipo_dado === 'INTEIRO') {
+    const value = Number(text)
+    if (!Number.isSafeInteger(value)) throw new Error(`O campo "${field.nome}" precisa ser um número inteiro válido.`)
+    return { valor_inteiro: value }
+  }
+  if (field.tipo_dado === 'DECIMAL' || field.tipo_dado === 'DINHEIRO') {
+    const normalized = text.includes(',') ? text.replace(/\./g, '').replace(',', '.') : text
+    const value = Number(normalized)
+    if (!Number.isFinite(value)) throw new Error(`Informe um número válido no campo "${field.nome}".`)
+    const fraction = normalized.split('.')[1] ?? ''
+    const maxDecimals = field.tipo_dado === 'DINHEIRO' ? 2 : 4
+    if (fraction.length > maxDecimals) {
+      throw new Error(`O campo "${field.nome}" aceita no máximo ${maxDecimals} casas decimais.`)
+    }
+    return field.tipo_dado === 'DINHEIRO'
+      ? { valor_monetario: value }
+      : { valor_decimal: value }
+  }
+  if (field.tipo_dado === 'BOOLEANO') {
+    if (text !== 'true' && text !== 'false') throw new Error(`Escolha Sim ou Não no campo "${field.nome}".`)
+    return { valor_booleano: text === 'true' }
+  }
+  if (field.tipo_dado === 'DATA') {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new Error(`Informe uma data válida no campo "${field.nome}".`)
+    return { valor_data: text }
+  }
+  if (field.tipo_dado === 'LISTA') {
+    const value = Number(text)
+    if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`Selecione uma opção no campo "${field.nome}".`)
+    return { opcao_id: value }
+  }
+  throw new Error(`O tipo do campo "${field.nome}" não é suportado pelo formulário.`)
+}
+
+function customRecordMatches(record, payload) {
+  const column = Object.keys(payload)[0]
+  if (customRecordColumn(record) !== column) return false
+  const oldValue = record[column]
+  const newValue = payload[column]
+  if (typeof newValue === 'number') return Number(oldValue) === newValue
+  return String(oldValue) === String(newValue)
 }
 
 function SearchIcon() {
@@ -88,6 +154,83 @@ export default function ProductsPage({
     unidade_id: '',
     estoque_minimo: '0',
   })
+
+  const [customCategories, setCustomCategories] = useState([])
+  const [customCategoriesLoading, setCustomCategoriesLoading] = useState(false)
+  const [customCategoriesError, setCustomCategoriesError] = useState('')
+  const [customCategoriesReloadKey, setCustomCategoriesReloadKey] = useState(0)
+  const [customCategoryId, setCustomCategoryId] = useState('')
+  const [originalCustomCategoryId, setOriginalCustomCategoryId] = useState('')
+  const [customFields, setCustomFields] = useState([])
+  const [customOptions, setCustomOptions] = useState({})
+  const [customDraft, setCustomDraft] = useState({})
+  const [customRecords, setCustomRecords] = useState([])
+  const [customLoading, setCustomLoading] = useState(false)
+  const [customError, setCustomError] = useState('')
+  const [customItemDataLoading, setCustomItemDataLoading] = useState(false)
+  const [customFieldsReloadKey, setCustomFieldsReloadKey] = useState(0)
+
+
+  useEffect(() => {
+    if (!formMode) return undefined
+    let cancelled = false
+
+    api.customCategories(companyId)
+      .then((result) => {
+        if (!cancelled) {
+          setCustomCategories(result)
+          setCustomCategoriesError('')
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return
+        if (error instanceof ApiError && error.status === 401) {
+          onLogout('Sua sessão expirou. Entre novamente.')
+          return
+        }
+        setCustomCategoriesError(error.message)
+      })
+      .finally(() => {
+        if (!cancelled) setCustomCategoriesLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [companyId, formMode, onLogout, customCategoriesReloadKey])
+
+  useEffect(() => {
+    if (!formMode || !customCategoryId) return undefined
+    let cancelled = false
+
+    async function loadFieldsAndOptions() {
+      try {
+        const nextFields = await api.customFields(companyId, Number(customCategoryId))
+        const optionEntries = await Promise.all(
+          nextFields
+            .filter((field) => field.tipo_dado === 'LISTA')
+            .map(async (field) => [String(field.id), await api.customOptions(companyId, field.id)]),
+        )
+        if (cancelled) return
+        setCustomFields(nextFields)
+        setCustomOptions(Object.fromEntries(optionEntries))
+        setCustomError('')
+      } catch (error) {
+        if (cancelled) return
+        if (error instanceof ApiError && error.status === 401) {
+          onLogout('Sua sessão expirou. Entre novamente.')
+          return
+        }
+        setCustomFields([])
+        setCustomOptions({})
+        setCustomError(error.message)
+      } finally {
+        if (!cancelled) setCustomLoading(false)
+      }
+    }
+
+    void loadFieldsAndOptions()
+    return () => { cancelled = true }
+  }, [companyId, formMode, customCategoryId, customFieldsReloadKey, onLogout])
+
 
   useEffect(() => {
     let cancelled = false
@@ -188,6 +331,63 @@ export default function ProductsPage({
     setReloadKey((value) => value + 1)
   }
 
+
+  async function loadItemCustomData(itemId) {
+    setCustomItemDataLoading(true)
+    setCustomError('')
+    try {
+      const associationPromise = api.itemCategory(companyId, itemId).catch((error) => {
+        if (error instanceof ApiError && error.status === 404) return null
+        throw error
+      })
+      const [association, records] = await Promise.all([
+        associationPromise,
+        api.itemCustomValues(companyId, itemId),
+      ])
+      const categoryId = association?.categoria_id ? String(association.categoria_id) : ''
+      setCustomCategoryId(categoryId)
+      setOriginalCustomCategoryId(categoryId)
+      setCustomRecords(records)
+      setCustomDraft(Object.fromEntries(records.map((record) => [String(record.campo_id), customRecordDraftValue(record)])))
+      if (categoryId) setCustomLoading(true)
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        onLogout('Sua sessão expirou. Entre novamente.')
+        return
+      }
+      setCustomError(`Não foi possível carregar os valores personalizados deste produto: ${error.message}`)
+    } finally {
+      setCustomItemDataLoading(false)
+    }
+  }
+
+  function handleCustomCategoryChange(categoryId) {
+    if (customRecords.length > 0 || customItemDataLoading) return
+    setCustomCategoryId(categoryId)
+    setCustomDraft({})
+    setCustomFields([])
+    setCustomOptions({})
+    setCustomError('')
+    setCustomLoading(Boolean(categoryId))
+  }
+
+  function handleCustomValueChange(fieldId, value) {
+    setCustomDraft((previous) => ({ ...previous, [fieldId]: value }))
+  }
+
+  function retryCustomCategories() {
+    setCustomCategoriesError('')
+    setCustomCategoriesLoading(true)
+    setCustomCategoriesReloadKey((value) => value + 1)
+  }
+
+  function retryCustomFields() {
+    setCustomError('')
+    setCustomLoading(true)
+    setCustomFieldsReloadKey((value) => value + 1)
+  }
+
+
   function startCreate() {
     setEditingId(null)
     setDraft({
@@ -196,6 +396,17 @@ export default function ProductsPage({
       unidade_id: units[0] ? String(units[0].id) : '',
       estoque_minimo: '0',
     })
+    setCustomCategoryId('')
+    setOriginalCustomCategoryId('')
+    setCustomFields([])
+    setCustomOptions({})
+    setCustomDraft({})
+    setCustomRecords([])
+    setCustomError('')
+    setCustomLoading(false)
+    setCustomItemDataLoading(false)
+    setCustomCategoriesError('')
+    setCustomCategoriesLoading(true)
     setFormError('')
     setFeedback('')
     setFormMode('create')
@@ -209,9 +420,21 @@ export default function ProductsPage({
       unidade_id: String(item.unidade_id),
       estoque_minimo: String(item.estoque_minimo ?? '0'),
     })
+    setCustomCategoryId('')
+    setOriginalCustomCategoryId('')
+    setCustomFields([])
+    setCustomOptions({})
+    setCustomDraft({})
+    setCustomRecords([])
+    setCustomError('')
+    setCustomLoading(false)
+    setCustomItemDataLoading(true)
+    setCustomCategoriesError('')
+    setCustomCategoriesLoading(true)
     setFormError('')
     setFeedback('')
     setFormMode('edit')
+    void loadItemCustomData(item.id)
   }
 
   function closeForm() {
@@ -238,40 +461,45 @@ export default function ProductsPage({
     const minimum = Number(minimumText)
     const selectedUnit = unitById.get(unitId)
     const existingItem = items.find((item) => item.id === editingId)
+    const keepingExistingUnit = existingItem && Number(existingItem.unidade_id) === unitId
 
-    const keepingExistingUnit = (
-      existingItem
-      && Number(existingItem.unidade_id) === unitId
-    )
-
-    if (!name) {
-      setFormError('Informe o nome do produto.')
-      return
+    if (!name) return setFormError('Informe o nome do produto.')
+    if (!unitId || (!selectedUnit && !keepingExistingUnit)) return setFormError('Selecione uma unidade de medida disponível.')
+    if (!minimumText || !Number.isFinite(minimum) || minimum < 0) return setFormError('Informe um estoque mínimo válido e não negativo.')
+    if (selectedUnit && !selectedUnit.permite_decimal && !Number.isInteger(minimum)) {
+      return setFormError('Esta unidade aceita somente quantidades inteiras. Ajuste o estoque mínimo.')
+    }
+    if (customItemDataLoading || customLoading) {
+      return setFormError('Aguarde o carregamento dos campos personalizados antes de salvar.')
+    }
+    if (customError && (customCategoryId || formMode === 'edit')) {
+      return setFormError('Resolva o erro ao carregar os dados personalizados antes de salvar.')
+    }
+    if (customCategoryId && customCategoriesError) {
+      return setFormError('Não foi possível confirmar as categorias. Tente carregar as categorias novamente.')
     }
 
-    if (!unitId || (!selectedUnit && !keepingExistingUnit)) {
-      setFormError('Selecione uma unidade de medida disponível.')
-      return
-    }
-
-    if (
-      !minimumText
-      || !Number.isFinite(minimum)
-      || minimum < 0
-    ) {
-      setFormError('Informe um estoque mínimo válido e não negativo.')
-      return
-    }
-
-    if (
-      selectedUnit
-      && !selectedUnit.permite_decimal
-      && !Number.isInteger(minimum)
-    ) {
-      setFormError(
-        'Esta unidade aceita somente quantidades inteiras. Ajuste o estoque mínimo.',
-      )
-      return
+    const recordByField = new Map(customRecords.map((record) => [String(record.campo_id), record]))
+    const parsedCustomValues = new Map()
+    if (customCategoryId) {
+      for (const field of customFields) {
+        const raw = customDraft[String(field.id)] ?? ''
+        const isBlank = String(raw).trim() === ''
+        const record = recordByField.get(String(field.id))
+        if (field.obrigatorio && isBlank) {
+          return setFormError(`O campo personalizado "${field.nome}" é obrigatório.`)
+        }
+        if (isBlank && record) {
+          return setFormError(`O campo "${field.nome}" já possui um valor salvo. A API atual não oferece exclusão de valores personalizados; mantenha o valor ou restaure-o antes de salvar.`)
+        }
+        if (!isBlank) {
+          try {
+            parsedCustomValues.set(String(field.id), parseCustomFieldValue(field, raw))
+          } catch (error) {
+            return setFormError(error.message)
+          }
+        }
+      }
     }
 
     const payload = {
@@ -279,28 +507,64 @@ export default function ProductsPage({
       descricao: draft.descricao.trim() || null,
       estoque_minimo: minimumText,
     }
+    if (!existingItem || Number(existingItem.unidade_id) !== unitId) payload.unidade_id = unitId
 
-    if (!existingItem || Number(existingItem.unidade_id) !== unitId) {
-      payload.unidade_id = unitId
-    }
+    const wasCreating = formMode === 'create'
+    let baseSaved = false
+    let savedItemId = editingId
+    let completedRecords = [...customRecords]
 
     setSaving(true)
-
     try {
-      if (formMode === 'edit') {
-        await api.updateItem(companyId, editingId, payload)
-      } else {
+      if (wasCreating) {
         payload.unidade_id = unitId
-        await api.createItem(companyId, payload)
+        const createdItem = await api.createItem(companyId, payload)
+        savedItemId = createdItem.id
+        baseSaved = true
+        // Persistir o ID no formulário evita duplicar o produto se uma chamada CUSTOM falhar.
+        setEditingId(savedItemId)
+        setFormMode('edit')
+        setOriginalCustomCategoryId('')
+        setCustomRecords([])
+        completedRecords = []
+      } else {
+        await api.updateItem(companyId, editingId, payload)
+        baseSaved = true
+      }
+
+      if (customCategoryId && String(customCategoryId) !== String(originalCustomCategoryId)) {
+        await api.assignItemCategory(companyId, savedItemId, customCategoryId)
+        setOriginalCustomCategoryId(String(customCategoryId))
+      }
+
+      if (customCategoryId) {
+        for (const field of customFields) {
+          const fieldId = String(field.id)
+          const valuePayload = parsedCustomValues.get(fieldId)
+          if (!valuePayload) continue
+
+          const existingRecord = completedRecords.find((record) => String(record.campo_id) === fieldId)
+          if (existingRecord && customRecordMatches(existingRecord, valuePayload)) continue
+
+          let savedRecord
+          if (existingRecord) {
+            savedRecord = await api.updateItemCustomValue(companyId, existingRecord.id, valuePayload)
+          } else {
+            savedRecord = await api.createItemCustomValue(companyId, savedItemId, {
+              campo_id: Number(field.id),
+              ...valuePayload,
+            })
+          }
+          completedRecords = existingRecord
+            ? completedRecords.map((record) => record.id === savedRecord.id ? savedRecord : record)
+            : [...completedRecords, savedRecord]
+          setCustomRecords(completedRecords)
+        }
       }
 
       setFormMode(null)
       setEditingId(null)
-      setFeedback(
-        formMode === 'edit'
-          ? 'Produto atualizado com sucesso.'
-          : 'Produto cadastrado com sucesso.',
-      )
+      setFeedback(wasCreating ? 'Produto cadastrado com sucesso.' : 'Produto atualizado com sucesso.')
       setSearch('')
       setPage(0)
       setLoading(true)
@@ -310,8 +574,10 @@ export default function ProductsPage({
         onLogout('Sua sessão expirou. Entre novamente.')
         return
       }
-
-      setFormError(error.message)
+      setCustomRecords(completedRecords)
+      setFormError(baseSaved
+        ? `Os dados básicos do produto foram salvos, mas não foi possível concluir todos os campos personalizados. O produto ${savedItemId ? `#${savedItemId} ` : ''}já existe. Revise o erro e tente salvar novamente. ${error.message}`
+        : error.message)
     } finally {
       setSaving(false)
     }
@@ -529,6 +795,26 @@ export default function ProductsPage({
             </div>
           </div>
 
+
+          <ProductCustomFields
+            categories={customCategories}
+            categoriesLoading={customCategoriesLoading}
+            categoriesError={customCategoriesError}
+            categoryId={customCategoryId}
+            originalCategoryId={originalCustomCategoryId}
+            categoryLocked={customRecords.length > 0}
+            fields={customFields}
+            options={customOptions}
+            values={customDraft}
+            loading={customLoading}
+            error={customError}
+            itemDataLoading={customItemDataLoading}
+            onCategoryChange={handleCustomCategoryChange}
+            onValueChange={handleCustomValueChange}
+            onRetryCategories={retryCustomCategories}
+            onRetryFields={retryCustomFields}
+          />
+
           <div className="record-editor-footer">
             <button
               type="button"
@@ -541,7 +827,7 @@ export default function ProductsPage({
             <button
               type="submit"
               className="button-primary"
-              disabled={saving || (units.length === 0 && formMode === 'create')}
+              disabled={saving || customItemDataLoading || customLoading || (units.length === 0 && formMode === 'create')}
             >
               {saving
                 ? 'Salvando...'

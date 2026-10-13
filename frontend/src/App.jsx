@@ -3,6 +3,9 @@ import { ApiError, api, session } from './api.js'
 import ProductsPage from './ProductsPage.jsx'
 import UnitsPage from './UnitsPage.jsx'
 import MovementsPage from './MovementsPage.jsx'
+import InventoriesPage from './InventoriesPage.jsx'
+import StockLowPage from './StockLowPage.jsx'
+import CustomSettingsPage from './CustomSettingsPage.jsx'
 import './App.css'
 
 function BrandMark() {
@@ -74,6 +77,35 @@ function MovementIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M7 7h13m0 0-4-4m4 4-4 4M17 17H4m0 0 4-4m-4 4 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function InventoryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M4.5 7.7 12 12l7.5-4.3M12 12v9" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="m9 15 2 2 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function StockLowIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 3 22 20H2L12 3Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M12 9v5m0 3h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function CustomSettingsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4 16.5h7m-7 4h7m3-4h6m-6 4h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   )
 }
@@ -335,7 +367,13 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
       ? 'Produtos'
       : activeSection === 'units'
         ? 'Unidades de medida'
-        : 'Movimentações'
+        : activeSection === 'movements'
+          ? 'Movimentações'
+          : activeSection === 'inventories'
+            ? 'Inventários'
+            : activeSection === 'custom'
+              ? 'Configurações personalizadas'
+              : 'Estoque baixo'
 
   return (
     <div className="app-shell">
@@ -351,6 +389,9 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
           <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'products' ? 'page' : undefined} onClick={() => navigateToSection('products')}><ProductsIcon /><span>Produtos</span></button>
           <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'units' ? 'page' : undefined} onClick={() => navigateToSection('units')}><BuildingIcon /><span>Unidades de medida</span></button>
           <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'movements' ? 'page' : undefined} onClick={() => navigateToSection('movements')}><MovementIcon /><span>Movimentações</span></button>
+          <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'inventories' ? 'page' : undefined} onClick={() => navigateToSection('inventories')}><InventoryIcon /><span>Inventários</span></button>
+          <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'stock-low' ? 'page' : undefined} onClick={() => navigateToSection('stock-low')}><StockLowIcon /><span>Estoque baixo</span></button>
+          <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'custom' ? 'page' : undefined} onClick={() => navigateToSection('custom')}><CustomSettingsIcon /><span>Configurações CUSTOM</span></button>
         </nav>
 
         <div className="sidebar-context">
@@ -393,7 +434,13 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
                     ? 'CATÁLOGO DE PRODUTOS'
                     : activeSection === 'units'
                       ? 'CONFIGURAÇÃO DO ESTOQUE'
-                      : 'OPERAÇÕES DE ESTOQUE'}
+                      : activeSection === 'inventories'
+                      ? 'CONTAGEM E CONCILIAÇÃO'
+                      : activeSection === 'custom'
+                        ? 'CATEGORIAS E CAMPOS CONFIGURÁVEIS'
+                        : activeSection === 'stock-low'
+                          ? 'ACOMPANHAMENTO DE REPOSIÇÃO'
+                          : 'OPERAÇÕES DE ESTOQUE'}
               </span>
               <h1>{pageTitle}</h1>
               <p>
@@ -403,6 +450,12 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
                   'Consulte, cadastre e atualize os produtos da empresa selecionada.'
                 ) : activeSection === 'units' ? (
                   'Configure as unidades e a precisão das quantidades usadas no estoque.'
+                ) : activeSection === 'inventories' ? (
+                  'Registre a contagem física e concilie diferenças sem editar saldos diretamente.'
+                ) : activeSection === 'custom' ? (
+                  'Defina categorias, campos personalizados e opções de listas para adaptar os cadastros.'
+                ) : activeSection === 'stock-low' ? (
+                  'Priorize itens abaixo do mínimo e acesse as movimentações para repor o estoque.'
                 ) : (
                   'Registre entradas, saídas e ajustes e consulte o histórico por produto.'
                 )}
@@ -421,6 +474,17 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
             <UnitsPage companyId={company.id} onLogout={onLogout} />
           ) : activeSection === 'movements' ? (
             <MovementsPage companyId={company.id} onLogout={onLogout} onNavigateProducts={() => navigateToSection('products')} />
+          ) : activeSection === 'inventories' ? (
+            <InventoriesPage companyId={company.id} onLogout={onLogout} />
+          ) : activeSection === 'custom' ? (
+            <CustomSettingsPage companyId={company.id} onLogout={onLogout} />
+          ) : activeSection === 'stock-low' ? (
+            <StockLowPage
+              companyId={company.id}
+              onLogout={onLogout}
+              onNavigateProducts={() => navigateToSection('products')}
+              onNavigateMovements={() => navigateToSection('movements')}
+            />
           ) : (
             <>
               {error && (
