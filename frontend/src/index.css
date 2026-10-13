@@ -1,0 +1,134 @@
+:root {
+  font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #272b3d;
+  background: #f7f8fc;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --color-bg: #f7f8fc;
+  --color-surface: #ffffff;
+  --color-surface-soft: #fbfbfe;
+  --color-text: #272b3d;
+  --color-text-muted: #737b90;
+  --color-border: #e5e8f1;
+  --color-primary: #6265c9;
+  --color-primary-hover: #5357b7;
+  --color-primary-soft: #eeefff;
+  --color-lavender: #f1efff;
+  --color-blue-soft: #edf4ff;
+  --color-mint-soft: #eaf7f0;
+  --color-amber-soft: #fff4df;
+  --color-rose-soft: #fff0f0;
+  --color-success: #34785d;
+  --color-warning: #946a23;
+  --color-danger: #a8444b;
+
+  --radius-sm: 9px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 27px;
+
+  --shadow-card:
+    0 16px 48px rgb(46 54 93 / 5%),
+    0 2px 8px rgb(46 54 93 / 3%);
+  --shadow-floating:
+    0 24px 65px rgb(55 59 104 / 10%),
+    0 3px 12px rgb(55 59 104 / 5%);
+
+  --font-small: 0.8125rem;
+  --font-body: 0.925rem;
+  --font-heading: 1.5rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  font-size: var(--font-body);
+  line-height: 1.55;
+  background:
+    radial-gradient(
+      ellipse at 9% 9%,
+      rgb(221 228 255 / 52%),
+      transparent 31rem
+    ),
+    radial-gradient(
+      ellipse at 96% 89%,
+      rgb(231 242 238 / 48%),
+      transparent 30rem
+    ),
+    var(--color-bg);
+}
+
+body,
+button,
+input,
+select {
+  font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+button,
+input,
+select {
+  font-size: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 3px solid rgb(98 101 201 / 35%);
+  outline-offset: 3px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.66;
+}
+
+a {
+  color: inherit;
+}
+
+svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  color: #272b3d;
+  background: #dedfff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

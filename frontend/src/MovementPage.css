@@ -1,0 +1,494 @@
+.sidebar-navigation {
+  display: grid;
+  gap: 4px;
+}
+
+.movement-page {
+  min-width: 0;
+}
+
+.movement-layout {
+  display: grid;
+  align-items: start;
+  grid-template-columns: minmax(0, 1.35fr) minmax(255px, 0.65fr);
+  gap: 18px;
+}
+
+.movement-form-panel,
+.movement-balance-card,
+.movement-guidance-card,
+.movement-history-panel {
+  min-width: 0;
+  border: 1px solid #e6e8f0;
+  border-radius: 16px;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 4px 16px rgb(44 53 91 / 3%);
+}
+
+.movement-form-panel {
+  padding: 22px;
+}
+
+.movement-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  margin-bottom: 22px;
+}
+
+.movement-panel-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid #e4e4f8;
+  border-radius: 12px;
+  background: #f1f0ff;
+  color: #6265c9;
+}
+
+.movement-panel-icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.movement-panel-heading h2,
+.movement-history-heading h2 {
+  margin: 5px 0 4px;
+  color: #373d53;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.movement-panel-heading p,
+.movement-history-heading p {
+  margin: 0;
+  color: #858ca0;
+  font-size: 0.75rem;
+  line-height: 1.65;
+}
+
+.movement-form-fields {
+  display: grid;
+  gap: 17px;
+}
+
+.movement-quantity-field {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  border: 1px solid #dfe3ef;
+  border-radius: 11px;
+  background: #fff;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.movement-quantity-field:focus-within {
+  border-color: #8586d9;
+  box-shadow: 0 0 0 4px rgb(104 107 203 / 10%);
+}
+
+.movement-quantity-field input {
+  width: 100%;
+  min-width: 0;
+  height: 47px;
+  padding: 0 13px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #30354b;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.movement-quantity-field input:focus-visible {
+  outline: none;
+}
+
+.movement-quantity-field > span {
+  max-width: 115px;
+  overflow: hidden;
+  padding: 0 13px;
+  border-left: 1px solid #eceef5;
+  color: #80879b;
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movement-form-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 19px;
+  padding: 12px;
+  border: 1px solid #e5e8f4;
+  border-radius: 10px;
+  background: #f8f9fe;
+}
+
+.movement-form-note > span {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid #d4d8f1;
+  border-radius: 50%;
+  color: #696dbb;
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.movement-form-note p {
+  margin: 0;
+  color: #7e859a;
+  font-size: 0.72rem;
+  line-height: 1.7;
+}
+
+.movement-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 19px;
+}
+
+.movement-form-footer .button-primary {
+  min-width: 205px;
+}
+
+.movement-form-footer .button-primary svg {
+  width: 17px;
+  height: 17px;
+}
+
+.movement-side-column {
+  display: grid;
+  gap: 15px;
+}
+
+.movement-balance-card {
+  position: relative;
+  overflow: hidden;
+  padding: 21px;
+  border-color: #e2e3f4;
+  background:
+    radial-gradient(ellipse at 100% 0, rgb(228 229 255 / 75%), transparent 55%),
+    linear-gradient(145deg, #fff 0%, #f8f8ff 100%);
+}
+
+.movement-balance-card h2 {
+  margin: 16px 0 7px;
+  color: #42475f;
+  font-size: 0.91rem;
+  font-weight: 680;
+}
+
+.movement-balance-value {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+  color: #333954;
+  font-size: clamp(1.9rem, 3vw, 2.55rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -1.5px;
+  line-height: 1.2;
+}
+
+.movement-balance-value span {
+  color: #7b8297;
+  font-size: 0.82rem;
+  font-weight: 550;
+  letter-spacing: 0;
+}
+
+.movement-balance-divider {
+  height: 1px;
+  margin: 19px 0 14px;
+  background: #e7e8f3;
+}
+
+.movement-balance-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #82899e;
+  font-size: 0.73rem;
+}
+
+.movement-balance-meta strong {
+  color: #555b72;
+  font-weight: 680;
+  text-align: right;
+}
+
+.movement-balance-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  color: #777f94;
+  font-size: 0.7rem;
+  line-height: 1.55;
+}
+
+.movement-status-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: #72ad8b;
+  box-shadow: 0 0 0 4px #e7f5eb;
+}
+
+.movement-status-dot.is-warning {
+  background: #d5a04a;
+  box-shadow: 0 0 0 4px #fff1d9;
+}
+
+.movement-no-selection {
+  margin: 16px 0 0;
+  color: #858ca0;
+  font-size: 0.79rem;
+  line-height: 1.7;
+}
+
+.movement-guidance-card {
+  padding: 19px;
+}
+
+.movement-guidance-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 17px;
+}
+
+.movement-guidance-symbol {
+  display: grid;
+  width: 33px;
+  height: 33px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 1.12rem;
+  font-weight: 650;
+}
+
+.movement-guidance-symbol.positive {
+  background: #eaf7f0;
+  color: #39805f;
+}
+
+.movement-guidance-symbol.negative {
+  background: #fff0f0;
+  color: #ae5b61;
+}
+
+.movement-guidance-row > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+.movement-guidance-row strong {
+  color: #50566d;
+  font-size: 0.78rem;
+  font-weight: 680;
+}
+
+.movement-guidance-row small {
+  color: #8c92a4;
+  font-size: 0.7rem;
+}
+
+.movement-guidance-card > p {
+  margin: 17px 0 0;
+  padding-top: 13px;
+  border-top: 1px solid #eff0f6;
+  color: #8a91a4;
+  font-size: 0.7rem;
+  line-height: 1.7;
+}
+
+.movement-history-panel {
+  overflow: hidden;
+  margin-top: 19px;
+}
+
+.movement-history-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 20px 21px;
+}
+
+.movement-history-heading h2 {
+  margin-top: 6px;
+  font-size: 1rem;
+}
+
+.movement-history-count {
+  flex-shrink: 0;
+  color: #8b91a3;
+  font-size: 0.7rem;
+}
+
+.movement-history-table td {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.movement-type-chip {
+  display: inline-flex;
+  min-height: 25px;
+  align-items: center;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 0.66rem;
+  font-weight: 680;
+  white-space: nowrap;
+}
+
+.movement-in,
+.movement-adjust-in {
+  border-color: #d8eadf;
+  background: #edf7f0;
+  color: #397858;
+}
+
+.movement-out,
+.movement-adjust-out {
+  border-color: #f0dcdd;
+  background: #fff1f1;
+  color: #a44c53;
+}
+
+.movement-neutral {
+  border-color: #e4e6f2;
+  background: #f5f5fc;
+  color: #69708c;
+}
+
+.quantity-in {
+  color: #387957 !important;
+}
+
+.quantity-out {
+  color: #a34d54 !important;
+}
+
+.movement-observation-cell {
+  min-width: 160px;
+}
+
+.movement-history-empty {
+  display: flex;
+  min-height: 145px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 25px;
+  color: #8990a3;
+  font-size: 0.78rem;
+  text-align: center;
+  line-height: 1.7;
+}
+
+.movement-history-empty strong {
+  color: #4b5167;
+  font-size: 0.83rem;
+}
+
+.movement-history-empty p {
+  max-width: 350px;
+  margin: 6px 0 0;
+}
+
+.movement-history-error {
+  color: #a34d54;
+}
+
+.movement-empty-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  margin-bottom: 9px;
+  border: 1px solid #e5e7f4;
+  border-radius: 13px;
+  background: #f5f5ff;
+  color: #777bc2;
+}
+
+.movement-empty-icon svg {
+  width: 23px;
+  height: 23px;
+}
+
+.movement-history-error-banner {
+  margin: 0 20px 10px;
+}
+
+.movement-load-more {
+  display: flex;
+  justify-content: center;
+  padding: 14px;
+  border-top: 1px solid #eff0f6;
+}
+
+@media (max-width: 1000px) {
+  .movement-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .movement-side-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .movement-form-panel {
+    padding: 17px;
+  }
+
+  .movement-side-column {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .movement-history-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  .movement-history-count {
+    white-space: normal;
+  }
+
+  .movement-form-footer .button-primary {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .movement-panel-heading h2,
+  .movement-history-heading h2 {
+    font-size: 0.92rem;
+  }
+
+  .movement-form-note {
+    padding: 10px;
+  }
+
+  .movement-form-note p {
+    font-size: 0.68rem;
+  }
+}
