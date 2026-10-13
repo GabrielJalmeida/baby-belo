@@ -354,3 +354,25 @@ def test_list_item_movements_rejects_invalid_pagination():
             )
 
             assert response.status_code == 422, query
+
+
+def test_movement_history_and_balance_reject_non_positive_item_ids():
+    with api_context() as context:
+        headers = context["headers"]
+
+        for item_id in (0, -1):
+            endpoints = (
+                f"/api/v1/itens/{item_id}/movimentacoes",
+                f"/api/v1/itens/{item_id}/saldo",
+            )
+
+            for endpoint in endpoints:
+                response = client.get(
+                    endpoint,
+                    headers=headers,
+                )
+
+                assert response.status_code == 422, (
+                    f"GET {endpoint}: esperado 422, "
+                    f"recebido {response.status_code}: {response.text}"
+                )
