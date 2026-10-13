@@ -101,6 +101,8 @@ export default function MovementsPage({ companyId, onLogout, onNavigateProducts 
   const [loadingCatalog, setLoadingCatalog] = useState(true)
   const [catalogError, setCatalogError] = useState('')
   const [selectedItemId, setSelectedItemId] = useState('')
+  const [productSearch, setProductSearch] = useState('')
+  const [productPickerOpen, setProductPickerOpen] = useState(false)
 
   const [currentBalance, setCurrentBalance] = useState(null)
   const [history, setHistory] = useState([])
@@ -218,6 +220,17 @@ export default function MovementsPage({ companyId, onLogout, onNavigateProducts 
   )
 
   const selectedItem = items.find((item) => String(item.id) === selectedItemId)
+  const matchingProducts = useMemo(() => {
+    const query = productSearch.trim().toLocaleLowerCase('pt-BR')
+    return items.filter((item) => {
+      const name = (item.nome ?? '').toLocaleLowerCase('pt-BR')
+      return !query || name.includes(query) || String(item.id).includes(query)
+    })
+  }, [items, productSearch])
+  const visibleProductMatches = matchingProducts.slice(0, 8)
+  const selectedProductLabel = selectedItem
+    ? `${selectedItem.nome} · Item #${selectedItem.id}`
+    : ''
   const selectedUnit = selectedItem
     ? unitById.get(Number(selectedItem.unidade_id))
     : null
@@ -327,6 +340,27 @@ export default function MovementsPage({ companyId, onLogout, onNavigateProducts 
     }
   }
 
+  function chooseProduct(item) {
+    setSelectedItemId(String(item.id))
+    setProductSearch('')
+    setProductPickerOpen(false)
+    setFormError('')
+  }
+
+  function handleProductPickerKeyDown(event) {
+    if (event.key === 'Escape') {
+      setProductPickerOpen(false)
+      return
+    }
+
+    if (event.key === 'Enter' && productPickerOpen) {
+      event.preventDefault()
+      if (productSearch.trim() && matchingProducts.length > 0) {
+        chooseProduct(matchingProducts[0])
+      }
+    }
+  }
+
   function retryCatalog() {
     setLoadingCatalog(true)
     setCatalogError('')
@@ -386,27 +420,78 @@ export default function MovementsPage({ companyId, onLogout, onNavigateProducts 
           <div className="movement-form-fields">
             <div className="form-field">
               <label htmlFor="movement-item">Produto *</label>
-              <select
-                id="movement-item"
-                className="record-field-select"
-                value={selectedItemId}
-                onChange={(event) => {
-                  setSelectedItemId(event.target.value)
-                  setFormError('')
-                }}
-                disabled={loadingCatalog || items.length === 0 || saving}
-                required
-              >
-                <option value="">Selecione um produto</option>
-                {items.map((item) => {
-                  const unit = unitById.get(Number(item.unidade_id))
-                  return (
-                    <option value={item.id} key={item.id}>
-                      {item.nome} · {unit?.simbolo || unit?.nome || `unidade #${item.unidade_id}`}
-                    </option>
-                  )
-                })}
-              </select>
+              <div className="movement-product-picker">
+                <input
+                  id="movement-item"
+                  type="search"
+                  className="record-field-select movement-product-search"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-expanded={productPickerOpen}
+                  aria-controls="movement-product-options"
+                  value={productPickerOpen ? productSearch : (productSearch || selectedProductLabel)}
+                  onFocus={() => {
+                    setProductSearch('')
+                    setProductPickerOpen(true)
+                  }}
+                  onChange={(event) => {
+                    setProductSearch(event.target.value)
+                    setProductPickerOpen(true)
+                    setSelectedItemId('')
+                    setFormError('')
+                  }}
+                  onBlur={() => setProductPickerOpen(false)}
+                  onKeyDown={handleProductPickerKeyDown}
+                  autoComplete="off"
+                  placeholder="Buscar por nome ou código do item..."
+                  disabled={loadingCatalog || items.length === 0 || saving}
+                  required={!selectedItemId}
+                />
+
+                {productPickerOpen && !loadingCatalog && items.length > 0 && (
+                  <div
+                    className="movement-product-options"
+                    id="movement-product-options"
+                    role="listbox"
+                    aria-label="Resultados da busca de produtos"
+                  >
+                    {visibleProductMatches.length > 0 ? (
+                      visibleProductMatches.map((item) => {
+                        const unit = unitById.get(Number(item.unidade_id))
+                        return (
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={String(item.id) === selectedItemId}
+                            className="movement-product-option"
+                            key={item.id}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => chooseProduct(item)}
+                          >
+                            <span className="movement-product-option-mark" aria-hidden="true">
+                              {(item.nome || 'P').trim().charAt(0).toUpperCase()}
+                            </span>
+                            <span className="movement-product-option-copy">
+                              <strong>{item.nome}</strong>
+                              <small>Item #{item.id} · {unit?.simbolo || unit?.nome || `unidade #${item.unidade_id}`}</small>
+                            </span>
+                          </button>
+                        )
+                      })
+                    ) : (
+                      <div className="movement-product-no-results">
+                        Nenhum produto encontrado. Tente outro nome ou código.
+                      </div>
+                    )}
+                    {matchingProducts.length > visibleProductMatches.length && (
+                      <div className="movement-product-options-note">
+                        Mostrando {visibleProductMatches.length} de {matchingProducts.length} resultados. Digite mais para filtrar.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <small className="field-help">Busque pelo nome ou pelo código (ID) do item. Digite parte do nome ou os números do código.</small>
             </div>
 
             <div className="form-field">

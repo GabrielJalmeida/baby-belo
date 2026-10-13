@@ -287,6 +287,10 @@ function formatQuantity(value) {
   return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 4 }).format(number)
 }
 
+function formatCount(value) {
+  return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(value)
+}
+
 function EmptyState({ title, description }) {
   return (
     <div className="empty-state">
@@ -305,6 +309,7 @@ function EmptyState({ title, description }) {
 function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
   const [balances, setBalances] = useState([])
   const [lowStockItems, setLowStockItems] = useState([])
+  const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
@@ -315,6 +320,7 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
     setError('')
     setLoading(true)
     setRefreshing(true)
+    setSummary(null)
     setReloadKey((value) => value + 1)
   }
 
@@ -334,13 +340,28 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
 
     async function loadStockData() {
       try {
-        const [stockBalances, lowStock] = await Promise.all([
+        const [stockBalances, lowStock, products, units, inventories] = await Promise.all([
           api.stockBalances(company.id),
-          api.lowStock(company.id),
+          api.lowStockAll(company.id),
+          api.items(company.id),
+          api.units(company.id),
+          api.inventories(company.id),
         ])
         if (cancelled) return
+
+        const safeLowStock = Array.isArray(lowStock) ? lowStock : []
+        const safeProducts = Array.isArray(products) ? products : []
+        const safeUnits = Array.isArray(units) ? units : []
+        const safeInventories = Array.isArray(inventories) ? inventories : []
+
         setBalances(Array.isArray(stockBalances) ? stockBalances : [])
-        setLowStockItems(Array.isArray(lowStock) ? lowStock : [])
+        setLowStockItems(safeLowStock.slice(0, 8))
+        setSummary({
+          products: safeProducts.length,
+          lowStock: safeLowStock.length,
+          units: safeUnits.length,
+          openInventories: safeInventories.filter((inventory) => inventory.status === 'ABERTO').length,
+        })
         setError('')
       } catch (loadError) {
         if (cancelled) return
@@ -493,6 +514,41 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
                   <button type="button" className="text-button" onClick={refresh}>Tentar novamente</button>
                 </div>
               )}
+
+              <section className="dashboard-metrics" aria-label="Indicadores operacionais">
+                <article className="dashboard-metric">
+                  <div className="dashboard-metric-top">
+                    <span className="dashboard-metric-label">Produtos ativos</span>
+                    <span className="dashboard-metric-icon metric-lavender"><ProductsIcon /></span>
+                  </div>
+                  <strong className="dashboard-metric-value">{summary ? formatCount(summary.products) : '—'}</strong>
+                  <small>Itens disponíveis no catálogo</small>
+                </article>
+                <article className="dashboard-metric">
+                  <div className="dashboard-metric-top">
+                    <span className="dashboard-metric-label">Abaixo do mínimo</span>
+                    <span className="dashboard-metric-icon metric-amber"><StockLowIcon /></span>
+                  </div>
+                  <strong className={`dashboard-metric-value ${summary?.lowStock ? 'metric-value-warning' : ''}`}>{summary ? formatCount(summary.lowStock) : '—'}</strong>
+                  <small>{summary?.lowStock === 0 ? 'Nenhum item requer atenção' : 'Itens que precisam de atenção'}</small>
+                </article>
+                <article className="dashboard-metric">
+                  <div className="dashboard-metric-top">
+                    <span className="dashboard-metric-label">Unidades disponíveis</span>
+                    <span className="dashboard-metric-icon metric-green"><BuildingIcon /></span>
+                  </div>
+                  <strong className="dashboard-metric-value">{summary ? formatCount(summary.units) : '—'}</strong>
+                  <small>Unidades de medida ativas</small>
+                </article>
+                <article className="dashboard-metric">
+                  <div className="dashboard-metric-top">
+                    <span className="dashboard-metric-label">Inventários abertos</span>
+                    <span className="dashboard-metric-icon metric-blue"><InventoryIcon /></span>
+                  </div>
+                  <strong className="dashboard-metric-value">{summary ? formatCount(summary.openInventories) : '—'}</strong>
+                  <small>Contagens ainda em andamento</small>
+                </article>
+              </section>
 
               <section className="dashboard-grid">
                 <article className="data-panel stock-panel">

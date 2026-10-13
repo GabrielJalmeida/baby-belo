@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ApiError, api } from './api.js'
 import ProductCustomFields from './ProductCustomFields.jsx'
+import ProductDetails from './ProductDetails.jsx'
 
 const PAGE_SIZE = 10
 
@@ -147,6 +148,7 @@ export default function ProductsPage({
   const [formMode, setFormMode] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [detailsItem, setDetailsItem] = useState(null)
 
   const [draft, setDraft] = useState({
     nome: '',
@@ -839,6 +841,21 @@ export default function ProductsPage({
         </form>
       )}
 
+      {detailsItem && (
+        <ProductDetails
+          item={detailsItem}
+          unit={unitById.get(Number(detailsItem.unidade_id))}
+          balance={balanceByItemId.get(Number(detailsItem.id))}
+          companyId={companyId}
+          onClose={() => setDetailsItem(null)}
+          onEdit={(item) => {
+            setDetailsItem(null)
+            startEdit(item)
+          }}
+          onLogout={onLogout}
+        />
+      )}
+
       <div className="records-table-panel">
         <div className="records-table-heading">
           <div>
@@ -963,6 +980,14 @@ export default function ProductsPage({
                         </td>
 
                         <td>
+                          <button
+                            type="button"
+                            className="table-action"
+                            onClick={() => setDetailsItem(item)}
+                            aria-label={`Ver detalhes de ${item.nome}`}
+                          >
+                            Detalhes
+                          </button>
                           <button
                             type="button"
                             className="table-action"

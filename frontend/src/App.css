@@ -2506,3 +2506,94 @@
     font-size: 0.66rem;
   }
 }
+
+/* Indicadores operacionais da Visão geral */
+.dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.dashboard-metric {
+  min-width: 0;
+  padding: 17px 18px 16px;
+  border: 1px solid #e7e9f1;
+  border-radius: 15px;
+  background: linear-gradient(145deg, rgb(255 255 255 / 98%), rgb(250 250 255 / 94%));
+  box-shadow: 0 4px 17px rgb(44 53 91 / 3%);
+}
+
+.dashboard-metric-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dashboard-metric-label {
+  color: #777e93;
+  font-size: .73rem;
+  font-weight: 680;
+  line-height: 1.4;
+}
+
+.dashboard-metric-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 10px;
+}
+
+.dashboard-metric-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.metric-lavender { color: #686ac2; background: #f0efff; }
+.metric-amber { color: #a17a38; background: #fff4df; }
+.metric-green { color: #54846c; background: #edf7f0; }
+.metric-blue { color: #577aa5; background: #edf4fc; }
+
+.dashboard-metric-value {
+  display: block;
+  margin-top: 12px;
+  color: #343a52;
+  font-size: clamp(1.55rem, 2vw, 2rem);
+  font-weight: 760;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-metric-value.metric-value-warning {
+  color: #a2772d;
+}
+
+.dashboard-metric > small {
+  display: block;
+  margin-top: 7px;
+  color: #9298aa;
+  font-size: .68rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .dashboard-metrics { gap: 10px; margin-bottom: 16px; }
+  .dashboard-metric { padding: 14px; border-radius: 13px; }
+  .dashboard-metric-label { font-size: .7rem; }
+  .dashboard-metric-icon { width: 31px; height: 31px; }
+  .dashboard-metric-value { margin-top: 10px; font-size: 1.6rem; }
+}
+
+@media (max-width: 420px) {
+  .dashboard-metrics { grid-template-columns: 1fr; }
+  .dashboard-metric { padding: 15px 16px; }
+  .dashboard-metric-value { margin-top: 8px; }
+}
