@@ -376,3 +376,63 @@ def test_movement_history_and_balance_reject_non_positive_item_ids():
                     f"GET {endpoint}: esperado 422, "
                     f"recebido {response.status_code}: {response.text}"
                 )
+
+
+def test_validate_quantity_rejects_extreme_decimal_before_quantize():
+    from decimal import Decimal
+
+    import pytest
+
+    from app.core.movement_service import MovimentacaoService
+
+    with pytest.raises(
+        ValueError,
+        match="A quantidade excede o limite permitido",
+    ):
+        MovimentacaoService._validate_quantity(
+            Decimal("1E+100")
+        )
+
+
+def test_create_movement_rejects_invalid_quantity_precision_and_range():
+    invalid_quantities = (
+        "0",
+        "-1.0000",
+        "1.00001",
+        "100000000000000.0000",
+        "NaN",
+        "Infinity",
+    )
+
+    with api_context() as context:
+        for quantity in invalid_quantities:
+            response = client.post(
+                "/api/v1/movimentacoes",
+                json={
+                    "item_id": context["item_id"],
+                    "tipo": "ENTRADA",
+                    "quantidade": quantity,
+                },
+                headers=context["headers"],
+            )
+
+            assert response.status_code == 422, (
+                f"Quantidade {quantity!r}: esperado HTTP 422; "
+                f"recebido {response.status_code}: {response.text}"
+            )
+
+        balance_response = client.get(
+            f"/api/v1/itens/{context['item_id']}/saldo",
+            headers=context["headers"],
+        )
+
+        assert balance_response.status_code == 200
+        assert balance_response.json()["saldo_atual"] == "0.0000"
+
+        history_response = client.get(
+            f"/api/v1/itens/{context['item_id']}/movimentacoes",
+            headers=context["headers"],
+        )
+
+        assert history_response.status_code == 200
+        assert history_response.json() == []

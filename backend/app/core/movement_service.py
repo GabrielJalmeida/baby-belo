@@ -63,14 +63,14 @@ class MovimentacaoService:
                 "A quantidade deve ser um número finito maior que zero."
             )
 
-        if quantidade != quantidade.quantize(QUATRO_CASAS_DECIMAIS):
-            raise ValueError(
-                "A quantidade aceita no máximo quatro casas decimais."
-            )
-
         if quantidade >= LIMITE_NUMERIC_18_4:
             raise ValueError(
                 "A quantidade excede o limite permitido."
+            )
+
+        if quantidade != quantidade.quantize(QUATRO_CASAS_DECIMAIS):
+            raise ValueError(
+                "A quantidade aceita no máximo quatro casas decimais."
             )
 
         return quantidade
