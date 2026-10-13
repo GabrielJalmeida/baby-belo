@@ -64,6 +64,7 @@ def test_cors_settings_reject_wildcard():
         Settings(
             _env_file=None,
             database_url="postgresql+psycopg://test:test@localhost/test",
-            secret_key="test-secret",
+            secret_key="s" * 32,
+            algorithm="HS256",
             cors_allowed_origins=["*"],
         )

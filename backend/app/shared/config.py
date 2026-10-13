@@ -1,10 +1,16 @@
 from pathlib import Path
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
+
+JWT_HMAC_MIN_KEY_BYTES = {
+    "HS256": 32,
+    "HS384": 48,
+    "HS512": 64,
+}
 
 
 class Settings(BaseSettings):
@@ -51,6 +57,29 @@ class Settings(BaseSettings):
             raise ValueError("SECRET_KEY não pode ficar vazia.")
 
         return secret_key
+
+    @field_validator("algorithm")
+    @classmethod
+    def validate_algorithm(cls, algorithm: str) -> str:
+        if algorithm not in JWT_HMAC_MIN_KEY_BYTES:
+            raise ValueError(
+                "ALGORITHM deve ser HS256, HS384 ou HS512."
+            )
+
+        return algorithm
+
+    @model_validator(mode="after")
+    def validate_secret_key_length(self) -> "Settings":
+        minimum_bytes = JWT_HMAC_MIN_KEY_BYTES[self.algorithm]
+        actual_bytes = len(self.secret_key.encode("utf-8"))
+
+        if actual_bytes < minimum_bytes:
+            raise ValueError(
+                f"SECRET_KEY deve possuir ao menos {minimum_bytes} "
+                f"bytes UTF-8 para o algoritmo {self.algorithm}."
+            )
+
+        return self
 
 
 settings = Settings()
