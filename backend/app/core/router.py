@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.application.company_service import CompanyApplicationService
 from app.core.schemas import (
     EmpresaCreate,
+    EmpresaMembershipResponse,
     EmpresaResponse,
     EmpresaUpdate,
 )
@@ -62,6 +63,27 @@ def list_companies(
         user_id=current_user.id,
         limit=limit,
         offset=offset,
+    )
+
+
+@router.get(
+    "/{company_id}/membership",
+    response_model=EmpresaMembershipResponse,
+)
+def get_company_membership(
+    company_id: Annotated[int, Path(gt=0)],
+    membership=Depends(get_current_company_membership),
+) -> EmpresaMembershipResponse:
+    if membership.empresa_id != company_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="A empresa informada não corresponde ao contexto ativo.",
+        )
+
+    return EmpresaMembershipResponse(
+        empresa_id=membership.empresa_id,
+        usuario_id=membership.usuario_id,
+        papel=membership.papel,
     )
 
 

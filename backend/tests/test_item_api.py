@@ -201,6 +201,16 @@ def test_list_items_returns_only_active_items_from_current_company():
         assert "Item inativo" not in names
         assert "Item de outra empresa" not in names
 
+        all_response = client.get(
+            "/api/v1/itens?include_inactive=true",
+            headers=headers_a,
+        )
+        assert all_response.status_code == 200
+        all_names = {item["nome"] for item in all_response.json()}
+        assert "Item ativo" in all_names
+        assert "Item inativo" in all_names
+        assert "Item de outra empresa" not in all_names
+
         cleanup_context(db, *first_context[:3])
         cleanup_context(db, *second_context[:3])
 

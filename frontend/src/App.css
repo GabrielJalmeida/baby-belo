@@ -2597,3 +2597,34 @@
   .dashboard-metric { padding: 15px 16px; }
   .dashboard-metric-value { margin-top: 8px; }
 }
+
+.records-include-inactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #747b90;
+  font-size: .72rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.records-include-inactive input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: #686bc5;
+}
+
+.status-inactive {
+  border-color: #e3e5eb;
+  background: #f3f4f7;
+  color: #777f91;
+}
+
+.unit-availability.is-inactive {
+  color: #81889a;
+}
+
+.unit-availability.is-inactive i {
+  background: #aeb4c1;
+}

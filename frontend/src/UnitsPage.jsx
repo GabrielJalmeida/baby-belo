@@ -24,7 +24,7 @@ function SearchIcon() {
   )
 }
 
-export default function UnitsPage({ companyId, onLogout }) {
+export default function UnitsPage({ companyId, onLogout, canWrite = true }) {
   const [units, setUnits] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -36,6 +36,9 @@ export default function UnitsPage({ companyId, onLogout }) {
   const [formMode, setFormMode] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [showInactive, setShowInactive] = useState(false)
+  const [actionBusyId, setActionBusyId] = useState(null)
+  const [actionError, setActionError] = useState('')
 
   const [draft, setDraft] = useState({
     nome: '',
@@ -48,7 +51,7 @@ export default function UnitsPage({ companyId, onLogout }) {
 
     async function loadUnits() {
       try {
-        const result = await api.units(companyId)
+        const result = await api.units(companyId, showInactive)
 
         if (!cancelled) {
           setUnits(result)
@@ -77,7 +80,7 @@ export default function UnitsPage({ companyId, onLogout }) {
     return () => {
       cancelled = true
     }
-  }, [companyId, onLogout, reloadKey])
+  }, [companyId, onLogout, reloadKey, showInactive])
 
   const filteredUnits = useMemo(() => {
     const query = search.trim().toLocaleLowerCase('pt-BR')
@@ -103,6 +106,29 @@ export default function UnitsPage({ companyId, onLogout }) {
     currentPage * PAGE_SIZE,
     (currentPage + 1) * PAGE_SIZE,
   )
+
+  async function toggleUnitActive(unit) {
+    const nextActive = !unit.ativo
+    const action = nextActive ? 'reativar' : 'inativar'
+    if (!window.confirm(`Deseja ${action} a unidade "${unit.nome}"? Os cadastros históricos serão preservados.`)) return
+
+    setActionError('')
+    setActionBusyId(unit.id)
+    try {
+      await api.updateUnit(companyId, unit.id, { ativo: nextActive })
+      setFeedback(`Unidade "${unit.nome}" ${nextActive ? 'reativada' : 'inativada'} com sucesso.`)
+      setLoading(true)
+      setReloadKey((value) => value + 1)
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        onLogout('Sua sessão expirou. Entre novamente.')
+        return
+      }
+      setActionError(error.message || 'Não foi possível alterar a situação da unidade.')
+    } finally {
+      setActionBusyId(null)
+    }
+  }
 
   function retryLoad() {
     setLoading(true)
@@ -207,6 +233,13 @@ export default function UnitsPage({ companyId, onLogout }) {
         </div>
       )}
 
+      {actionError && (
+        <div className="record-feedback error" role="alert">
+          <span>{actionError}</span>
+          <button type="button" className="feedback-dismiss" onClick={() => setActionError('')} aria-label="Dispensar mensagem">×</button>
+        </div>
+      )}
+
       {loadError && (
         <div className="record-feedback error" role="alert">
           <span>{loadError}</span>
@@ -254,14 +287,20 @@ export default function UnitsPage({ companyId, onLogout }) {
             {filteredUnits.length}{' '}
             {filteredUnits.length === 1 ? 'unidade' : 'unidades'}
           </span>
-          <button
-            type="button"
-            className="button-primary records-primary-action"
-            onClick={startCreate}
-          >
-            <span aria-hidden="true">+</span>
-            Nova unidade
-          </button>
+          <label className="records-include-inactive">
+            <input type="checkbox" checked={showInactive} onChange={(event) => { setPage(0); setLoading(true); setShowInactive(event.target.checked) }} />
+            <span>Incluir inativas</span>
+          </label>
+          {canWrite && (
+            <button
+              type="button"
+              className="button-primary records-primary-action"
+              onClick={startCreate}
+            >
+              <span aria-hidden="true">+</span>
+              Nova unidade
+            </button>
+          )}
         </div>
       </div>
 
@@ -394,7 +433,7 @@ export default function UnitsPage({ companyId, onLogout }) {
         <div className="records-table-heading">
           <div>
             <h2>Unidades cadastradas</h2>
-            <p>Unidades ativas disponíveis para os produtos desta empresa.</p>
+            <p>{showInactive ? 'Unidades ativas e inativas cadastradas nesta empresa.' : 'Unidades ativas disponíveis para os produtos desta empresa.'}</p>
           </div>
           <span className="table-live-indicator">
             <i />
@@ -447,13 +486,15 @@ export default function UnitsPage({ companyId, onLogout }) {
                 Exemplos: unidade, caixa, quilograma ou litro.
                 Produtos precisam de uma unidade de medida.
               </p>
-              <button
-                type="button"
-                className="button-primary records-empty-action"
-                onClick={startCreate}
-              >
-                Cadastrar primeira unidade
-              </button>
+                  {canWrite && (
+                    <button
+                      type="button"
+                      className="button-primary records-empty-action"
+                      onClick={startCreate}
+                    >
+                      Cadastrar primeira unidade
+                    </button>
+                  )}
             </div>
           )
         ) : (
@@ -501,21 +542,34 @@ export default function UnitsPage({ companyId, onLogout }) {
                       </td>
 
                       <td>
-                        <span className="unit-availability">
+                        <span className={`unit-availability${unit.ativo ? '' : ' is-inactive'}`}>
                           <i />
-                          Ativa
+                          {unit.ativo ? 'Ativa' : 'Inativa'}
                         </span>
                       </td>
 
                       <td>
-                        <button
-                          type="button"
-                          className="table-action"
-                          onClick={() => startEdit(unit)}
-                          aria-label={`Editar unidade ${unit.nome}`}
-                        >
-                          Editar
-                        </button>
+                        {canWrite && (
+                          <button
+                            type="button"
+                            className="table-action"
+                            onClick={() => startEdit(unit)}
+                            aria-label={`Editar unidade ${unit.nome}`}
+                          >
+                            Editar
+                          </button>
+                        )}
+                        {canWrite && (
+                          <button
+                            type="button"
+                            className="table-action"
+                            disabled={actionBusyId === unit.id}
+                            onClick={() => void toggleUnitActive(unit)}
+                            aria-label={`${unit.ativo ? 'Inativar' : 'Reativar'} unidade ${unit.nome}`}
+                          >
+                            {actionBusyId === unit.id ? 'Salvando…' : unit.ativo ? 'Inativar' : 'Reativar'}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

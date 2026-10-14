@@ -92,3 +92,29 @@ def test_company_routes_reject_non_positive_path_ids():
         if context is not None:
             cleanup_company_context(db, *context[:3])
         db.close()
+
+def test_company_membership_route_returns_active_role():
+    db = SessionLocal()
+    context = None
+
+    try:
+        context = create_company_context(db)
+        user, company, membership, headers = context
+        membership.papel = "VIEWER"
+        db.commit()
+
+        response = client.get(
+            f"/api/v1/empresas/{company.id}/membership",
+            headers=headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "empresa_id": company.id,
+            "usuario_id": user.id,
+            "papel": "VIEWER",
+        }
+    finally:
+        if context is not None:
+            cleanup_company_context(db, *context[:3])
+        db.close()

@@ -158,6 +158,7 @@ def create_item(
 def list_items(
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    include_inactive: bool = Query(default=False),
     membership=Depends(get_current_company_membership),
     db: Session = Depends(get_db),
 ) -> list[ItemResponse]:
@@ -166,6 +167,7 @@ def list_items(
         empresa_id=membership.empresa_id,
         limit=limit,
         offset=offset,
+        include_inactive=include_inactive,
     )
 
 

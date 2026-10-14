@@ -199,6 +199,19 @@ def test_list_units_returns_only_active_units_of_company():
         assert "Unidade Inativa" not in names
         assert "Unidade Outro" not in names
 
+        all_response = client.get(
+            "/api/v1/unidades?include_inactive=true",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Company-ID": str(company.id),
+            },
+        )
+        assert all_response.status_code == 200
+        all_names = {unit["nome"] for unit in all_response.json()}
+        assert "Unidade A" in all_names
+        assert "Unidade Inativa" in all_names
+        assert "Unidade Outro" not in all_names
+
         cleanup(db, user, company, membership)
 
         db.query(Unidade).filter(

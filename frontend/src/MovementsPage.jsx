@@ -94,7 +94,7 @@ function EmptyHistory({ loading, error, hasItem }) {
   )
 }
 
-export default function MovementsPage({ companyId, onLogout, onNavigateProducts }) {
+export default function MovementsPage({ companyId, onLogout, onNavigateProducts, canWrite = true }) {
   const [items, setItems] = useState([])
   const [units, setUnits] = useState([])
   const [balances, setBalances] = useState([])
@@ -391,6 +391,10 @@ export default function MovementsPage({ companyId, onLogout, onNavigateProducts 
         </div>
       )}
 
+      {!canWrite && (
+        <div className="record-feedback notice" role="status">Seu perfil permite consultar saldos e históricos, mas não registrar movimentações.</div>
+      )}
+
       <div className="movement-layout">
         <form className="movement-form-panel" onSubmit={handleSubmit}>
           <div className="movement-panel-heading">
@@ -501,7 +505,7 @@ export default function MovementsPage({ companyId, onLogout, onNavigateProducts 
                 className="record-field-select"
                 value={draft.tipo}
                 onChange={(event) => updateDraft('tipo', event.target.value)}
-                disabled={saving}
+                disabled={saving || !canWrite}
               >
                 {MOVEMENT_TYPES.map((type) => (
                   <option key={type.value} value={type.value}>{type.label}</option>
@@ -522,7 +526,7 @@ export default function MovementsPage({ companyId, onLogout, onNavigateProducts 
                   value={draft.quantidade}
                   onChange={(event) => updateDraft('quantidade', event.target.value)}
                   maxLength={20}
-                  disabled={!selectedItem || saving}
+                  disabled={!canWrite || !selectedItem || saving}
                   required
                 />
                 <span>{selectedUnit?.simbolo || selectedUnit?.nome || 'unidade'}</span>
@@ -542,7 +546,7 @@ export default function MovementsPage({ companyId, onLogout, onNavigateProducts 
                 onChange={(event) => updateDraft('motivo', event.target.value)}
                 maxLength={255}
                 placeholder="Ex.: compra, venda, perda, correção"
-                disabled={!selectedItem || saving}
+                disabled={!canWrite || !selectedItem || saving}
               />
               <small className="field-help">Opcional · até 255 caracteres</small>
             </div>
@@ -556,7 +560,7 @@ export default function MovementsPage({ companyId, onLogout, onNavigateProducts 
                 maxLength={5000}
                 rows={3}
                 placeholder="Informações adicionais (opcional)"
-                disabled={!selectedItem || saving}
+                disabled={!canWrite || !selectedItem || saving}
               />
               <small className="field-help">{draft.observacao.length}/5000 caracteres</small>
             </div>
@@ -574,7 +578,7 @@ export default function MovementsPage({ companyId, onLogout, onNavigateProducts 
             <button
               type="submit"
               className="button-primary"
-              disabled={saving || loadingCatalog || !selectedItem}
+              disabled={!canWrite || saving || loadingCatalog || !selectedItem}
             >
               {saving ? 'Registrando...' : `Registrar ${selectedType.label.toLocaleLowerCase('pt-BR')}`}
               {!saving && (

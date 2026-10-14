@@ -86,6 +86,7 @@ export default function ProductDetails({
   onClose,
   onEdit,
   onLogout,
+  canWrite = true,
 }) {
   const [balance, setBalance] = useState(initialBalance?.saldo_atual ?? null)
   const [balanceLoading, setBalanceLoading] = useState(!initialBalance)
@@ -328,9 +329,11 @@ export default function ProductDetails({
               <span className="eyebrow">IDENTIFICAÇÃO</span>
               <h3>Dados do cadastro</h3>
             </div>
-            <button type="button" className="button-secondary product-detail-edit" onClick={() => onEdit(item)}>
-              Editar produto
-            </button>
+            {canWrite && (
+              <button type="button" className="button-secondary product-detail-edit" onClick={() => onEdit(item)}>
+                Editar produto
+              </button>
+            )}
           </div>
           <dl className="product-detail-description-grid">
             <div>

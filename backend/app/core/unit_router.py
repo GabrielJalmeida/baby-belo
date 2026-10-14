@@ -87,6 +87,7 @@ def create_unit(
 def list_units(
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
+    include_inactive: bool = Query(default=False),
     membership=Depends(
         get_current_company_membership,
     ),
@@ -97,6 +98,7 @@ def list_units(
         empresa_id=membership.empresa_id,
         limit=limit,
         offset=offset,
+        include_inactive=include_inactive,
     )
 
 

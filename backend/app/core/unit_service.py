@@ -88,14 +88,13 @@ class UnidadeService:
         empresa_id: int,
         limit: int = 50,
         offset: int = 0,
+        include_inactive: bool = False,
     ) -> list[Unidade]:
+        statement = select(Unidade).where(Unidade.empresa_id == empresa_id)
+        if not include_inactive:
+            statement = statement.where(Unidade.ativo.is_(True))
         statement = (
-            select(Unidade)
-            .where(
-                Unidade.empresa_id == empresa_id,
-                Unidade.ativo.is_(True),
-            )
-            .order_by(Unidade.id)
+            statement.order_by(Unidade.id)
             .limit(limit)
             .offset(offset)
         )
@@ -130,6 +129,25 @@ class UnidadeService:
 
         if unit is None:
             return None
+
+        if changes.get("ativo") is False and unit.ativo:
+            deactivation_company = db.scalar(
+                select(Empresa)
+                .where(Empresa.id == empresa_id)
+                .with_for_update(key_share=True)
+            )
+            if deactivation_company is None:
+                return None
+            try:
+                InventarioService.ensure_company_has_no_open_inventory(
+                    db=db,
+                    empresa_id=empresa_id,
+                )
+            except ItemBloqueadoPorInventarioAbertoError as exc:
+                raise UnidadeBloqueadaPorInventarioAbertoError(
+                    "Não é possível inativar uma unidade enquanto existe "
+                    "um inventário aberto."
+                ) from exc
 
         if changes.get("permite_decimal") is False:
             company = db.scalar(

@@ -182,14 +182,13 @@ class ItemService:
         empresa_id: int,
         limit: int = 50,
         offset: int = 0,
+        include_inactive: bool = False,
     ) -> list[Item]:
+        statement = select(Item).where(Item.empresa_id == empresa_id)
+        if not include_inactive:
+            statement = statement.where(Item.ativo.is_(True))
         statement = (
-            select(Item)
-            .where(
-                Item.empresa_id == empresa_id,
-                Item.ativo.is_(True),
-            )
-            .order_by(Item.id)
+            statement.order_by(Item.id)
             .limit(limit)
             .offset(offset)
         )
@@ -238,6 +237,13 @@ class ItemService:
 
         if item is None:
             return None
+
+        if changes.get("ativo") is False and item.ativo:
+            InventarioService.ensure_item_not_in_open_inventory(
+                db=db,
+                empresa_id=empresa_id,
+                item_id=item_id,
+            )
 
         requested_unit_change = "unidade_id" in changes
         target_unit_id = changes.get("unidade_id", item.unidade_id)

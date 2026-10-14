@@ -54,7 +54,7 @@ function emptyFieldDraft() {
   }
 }
 
-export default function CustomSettingsPage({ companyId, onLogout }) {
+export default function CustomSettingsPage({ companyId, onLogout, canWrite = true }) {
   const [categories, setCategories] = useState([])
   const [categoriesLoading, setCategoriesLoading] = useState(true)
   const [categoriesError, setCategoriesError] = useState('')
@@ -452,7 +452,8 @@ export default function CustomSettingsPage({ companyId, onLogout }) {
   }
 
   return (
-    <section className="custom-settings-page">
+    <section className={`custom-settings-page${canWrite ? '' : ' is-readonly'}`}>
+      {!canWrite && <div className="custom-readonly-notice" role="status">Seu perfil permite consultar categorias, campos e opções, mas não alterá-los.</div>}
       {feedback && (
         <div className="custom-feedback custom-feedback-success" role="status">
           <span aria-hidden="true">✓</span><span>{feedback}</span>
@@ -561,7 +562,7 @@ export default function CustomSettingsPage({ companyId, onLogout }) {
                       <div className="custom-field-card-main">
                         <span className="custom-field-order">{field.ordem_exibicao}</span>
                         <div className="custom-field-card-copy"><div className="custom-field-name-row"><h4>{field.nome}</h4>{field.obrigatorio && <span className="custom-required-badge">Obrigatório</span>}</div><p>{fieldTypeLabel(field.tipo_dado)} <span aria-hidden="true">·</span> ID {field.id}</p></div>
-                        <div className="custom-field-actions"><button type="button" className="custom-button-text" onClick={() => startEditField(field)}>Editar</button>{field.tipo_dado === 'LISTA' && <button type="button" className="custom-button-text" onClick={() => void loadOptions(field)}>{Number(expandedFieldId) === Number(field.id) ? 'Fechar opções' : 'Gerenciar opções'}</button>}<button type="button" className="custom-button-text custom-text-danger" onClick={() => deactivateField(field)}>Inativar</button></div>
+                        <div className="custom-field-actions"><button type="button" className="custom-button-text" onClick={() => startEditField(field)}>Editar</button>{field.tipo_dado === 'LISTA' && <button type="button" className="custom-button-text custom-options-toggle" onClick={() => void loadOptions(field)}>{Number(expandedFieldId) === Number(field.id) ? 'Fechar opções' : 'Gerenciar opções'}</button>}<button type="button" className="custom-button-text custom-text-danger" onClick={() => deactivateField(field)}>Inativar</button></div>
                       </div>
 
                       {field.tipo_dado === 'LISTA' && Number(expandedFieldId) === Number(field.id) && (

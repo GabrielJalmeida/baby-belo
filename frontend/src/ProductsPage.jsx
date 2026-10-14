@@ -133,6 +133,7 @@ export default function ProductsPage({
   companyId,
   onLogout,
   onNavigateUnits,
+  canWrite = true,
 }) {
   const [items, setItems] = useState([])
   const [units, setUnits] = useState([])
@@ -148,6 +149,9 @@ export default function ProductsPage({
   const [formMode, setFormMode] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [showInactive, setShowInactive] = useState(false)
+  const [actionBusyId, setActionBusyId] = useState(null)
+  const [actionError, setActionError] = useState('')
   const [detailsItem, setDetailsItem] = useState(null)
 
   const [draft, setDraft] = useState({
@@ -245,7 +249,7 @@ export default function ProductsPage({
           balanceList,
           lowStockList,
         ] = await Promise.all([
-          api.items(companyId),
+          api.items(companyId, showInactive),
           api.units(companyId),
           api.stockBalancesAll(companyId),
           api.lowStockAll(companyId),
@@ -283,7 +287,7 @@ export default function ProductsPage({
     return () => {
       cancelled = true
     }
-  }, [companyId, onLogout, reloadKey])
+  }, [companyId, onLogout, reloadKey, showInactive])
 
   const unitById = useMemo(
     () => new Map(units.map((unit) => [Number(unit.id), unit])),
@@ -326,6 +330,29 @@ export default function ProductsPage({
     currentPage * PAGE_SIZE,
     (currentPage + 1) * PAGE_SIZE,
   )
+
+  async function toggleItemActive(item) {
+    const nextActive = !item.ativo
+    const action = nextActive ? 'reativar' : 'inativar'
+    if (!window.confirm(`Deseja ${action} o produto "${item.nome}"? O histórico e as movimentações existentes serão preservados.`)) return
+
+    setActionError('')
+    setActionBusyId(item.id)
+    try {
+      await api.updateItem(companyId, item.id, { ativo: nextActive })
+      setFeedback(`Produto "${item.nome}" ${nextActive ? 'reativado' : 'inativado'} com sucesso.`)
+      setLoading(true)
+      setReloadKey((value) => value + 1)
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        onLogout('Sua sessão expirou. Entre novamente.')
+        return
+      }
+      setActionError(error.message || 'Não foi possível alterar a situação do produto.')
+    } finally {
+      setActionBusyId(null)
+    }
+  }
 
   function retryLoad() {
     setLoading(true)
@@ -602,6 +629,13 @@ export default function ProductsPage({
         </div>
       )}
 
+      {actionError && (
+        <div className="record-feedback error" role="alert">
+          <span>{actionError}</span>
+          <button type="button" className="feedback-dismiss" onClick={() => setActionError('')} aria-label="Dispensar mensagem">×</button>
+        </div>
+      )}
+
       {loadError && (
         <div className="record-feedback error" role="alert">
           <span>{loadError}</span>
@@ -649,14 +683,20 @@ export default function ProductsPage({
             {filteredItems.length}{' '}
             {filteredItems.length === 1 ? 'produto' : 'produtos'}
           </span>
-          <button
-            type="button"
-            className="button-primary records-primary-action"
-            onClick={startCreate}
-          >
-            <span aria-hidden="true">+</span>
-            Novo produto
-          </button>
+          <label className="records-include-inactive">
+            <input type="checkbox" checked={showInactive} onChange={(event) => { setPage(0); setLoading(true); setShowInactive(event.target.checked) }} />
+            <span>Incluir inativos</span>
+          </label>
+          {canWrite && (
+            <button
+              type="button"
+              className="button-primary records-primary-action"
+              onClick={startCreate}
+            >
+              <span aria-hidden="true">+</span>
+              Novo produto
+            </button>
+          )}
         </div>
       </div>
 
@@ -842,25 +882,26 @@ export default function ProductsPage({
       )}
 
       {detailsItem && (
-        <ProductDetails
-          item={detailsItem}
-          unit={unitById.get(Number(detailsItem.unidade_id))}
-          balance={balanceByItemId.get(Number(detailsItem.id))}
-          companyId={companyId}
-          onClose={() => setDetailsItem(null)}
-          onEdit={(item) => {
-            setDetailsItem(null)
-            startEdit(item)
-          }}
-          onLogout={onLogout}
-        />
+          <ProductDetails
+            item={detailsItem}
+            unit={unitById.get(Number(detailsItem.unidade_id))}
+            balance={balanceByItemId.get(Number(detailsItem.id))}
+            companyId={companyId}
+            canWrite={canWrite}
+            onClose={() => setDetailsItem(null)}
+            onEdit={(item) => {
+              setDetailsItem(null)
+              startEdit(item)
+            }}
+            onLogout={onLogout}
+          />
       )}
 
       <div className="records-table-panel">
         <div className="records-table-heading">
           <div>
             <h2>Catálogo de produtos</h2>
-            <p>Produtos ativos cadastrados na empresa selecionada.</p>
+            <p>{showInactive ? 'Produtos ativos e inativos cadastrados na empresa selecionada.' : 'Produtos ativos cadastrados na empresa selecionada.'}</p>
           </div>
           <span className="table-live-indicator">
             <i />
@@ -902,7 +943,7 @@ export default function ProductsPage({
             <ProductEmpty
               title="Seu catálogo começa aqui"
               description="Cadastre o primeiro produto para começar a acompanhar seu estoque."
-              action={(
+              action={canWrite ? (
                 <button
                   type="button"
                   className="button-primary records-empty-action"
@@ -910,7 +951,7 @@ export default function ProductsPage({
                 >
                   Cadastrar primeiro produto
                 </button>
-              )}
+              ) : null}
             />
           )
         ) : (
@@ -972,10 +1013,10 @@ export default function ProductsPage({
                         <td>
                           <span
                             className={`status-chip ${
-                              isLow ? 'status-warning' : 'status-neutral'
+                              !item.ativo ? 'status-inactive' : isLow ? 'status-warning' : 'status-neutral'
                             }`}
                           >
-                            {isLow ? 'Estoque baixo' : 'Sem alerta'}
+                            {!item.ativo ? 'Inativo' : isLow ? 'Estoque baixo' : 'Sem alerta'}
                           </span>
                         </td>
 
@@ -988,14 +1029,27 @@ export default function ProductsPage({
                           >
                             Detalhes
                           </button>
-                          <button
-                            type="button"
-                            className="table-action"
-                            onClick={() => startEdit(item)}
-                            aria-label={`Editar ${item.nome}`}
-                          >
-                            Editar
-                          </button>
+                          {canWrite && item.ativo && (
+                            <button
+                              type="button"
+                              className="table-action"
+                              onClick={() => startEdit(item)}
+                              aria-label={`Editar ${item.nome}`}
+                            >
+                              Editar
+                            </button>
+                          )}
+                          {canWrite && (
+                            <button
+                              type="button"
+                              className="table-action"
+                              disabled={actionBusyId === item.id}
+                              onClick={() => void toggleItemActive(item)}
+                              aria-label={`${item.ativo ? 'Inativar' : 'Reativar'} ${item.nome}`}
+                            >
+                              {actionBusyId === item.id ? 'Salvando…' : item.ativo ? 'Inativar' : 'Reativar'}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     )

@@ -315,6 +315,10 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
   const [activeSection, setActiveSection] = useState('overview')
+  const [companyRole, setCompanyRole] = useState(null)
+  const [roleLoading, setRoleLoading] = useState(true)
+  const [roleError, setRoleError] = useState('')
+  const [roleReloadKey, setRoleReloadKey] = useState(0)
 
   const refresh = () => {
     setError('')
@@ -333,6 +337,31 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
     }
     setActiveSection(section)
   }
+
+  useEffect(() => {
+    let cancelled = false
+
+    api.companyMembership(company.id)
+      .then((membership) => {
+        if (!cancelled) setCompanyRole(membership.papel)
+      })
+      .catch((error) => {
+        if (cancelled) return
+        if (error instanceof ApiError && error.status === 401) {
+          onLogout('Sua sessão expirou. Entre novamente.')
+          return
+        }
+        setCompanyRole(null)
+        setRoleError(error.message || 'Não foi possível confirmar as permissões desta empresa.')
+      })
+      .finally(() => {
+        if (!cancelled) setRoleLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [company.id, onLogout, roleReloadKey])
+
+  const canWrite = !roleLoading && ['OWNER', 'OPERATOR'].includes(companyRole)
 
   useEffect(() => {
     if (activeSection !== 'overview') return undefined
@@ -489,16 +518,26 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
             )}
           </section>
 
+          {roleError && (
+            <div className="error-banner" role="alert">
+              <div><strong>Não foi possível confirmar as permissões.</strong><p>{roleError} A interface permanecerá em modo de consulta até a verificação funcionar.</p></div>
+              <button type="button" className="text-button" onClick={() => { setRoleLoading(true); setRoleError(''); setCompanyRole(null); setRoleReloadKey((value) => value + 1) }}>Tentar novamente</button>
+            </div>
+          )}
+          {!roleError && !roleLoading && companyRole === 'VIEWER' && (
+            <div className="record-feedback notice" role="status">Seu perfil nesta empresa é de consulta. Você pode visualizar dados, saldos e históricos, mas não registrar alterações.</div>
+          )}
+
           {activeSection === 'products' ? (
-            <ProductsPage companyId={company.id} onLogout={onLogout} onNavigateUnits={() => navigateToSection('units')} />
+            <ProductsPage companyId={company.id} onLogout={onLogout} canWrite={canWrite} onNavigateUnits={() => navigateToSection('units')} />
           ) : activeSection === 'units' ? (
-            <UnitsPage companyId={company.id} onLogout={onLogout} />
+            <UnitsPage companyId={company.id} onLogout={onLogout} canWrite={canWrite} />
           ) : activeSection === 'movements' ? (
-            <MovementsPage companyId={company.id} onLogout={onLogout} onNavigateProducts={() => navigateToSection('products')} />
+            <MovementsPage companyId={company.id} onLogout={onLogout} canWrite={canWrite} onNavigateProducts={() => navigateToSection('products')} />
           ) : activeSection === 'inventories' ? (
-            <InventoriesPage companyId={company.id} onLogout={onLogout} />
+            <InventoriesPage companyId={company.id} onLogout={onLogout} canWrite={canWrite} />
           ) : activeSection === 'custom' ? (
-            <CustomSettingsPage companyId={company.id} onLogout={onLogout} />
+            <CustomSettingsPage companyId={company.id} onLogout={onLogout} canWrite={canWrite} />
           ) : activeSection === 'stock-low' ? (
             <StockLowPage
               companyId={company.id}

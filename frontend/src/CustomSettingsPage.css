@@ -368,3 +368,29 @@
   .custom-loading span,
   .custom-loading-card div { animation: none; }
 }
+
+.custom-settings-page.is-readonly .custom-readonly-notice {
+  display: block;
+  margin: 0 0 1rem;
+  padding: .8rem 1rem;
+  border: 1px solid #dfe3f3;
+  border-radius: .75rem;
+  background: #f7f8fe;
+  color: #626a82;
+  font-size: .84rem;
+  line-height: 1.5;
+}
+
+.custom-settings-page.is-readonly .custom-panel-heading > button,
+.custom-settings-page.is-readonly .custom-category-actions,
+.custom-settings-page.is-readonly .custom-field-section-heading > .custom-button-primary,
+.custom-settings-page.is-readonly .custom-inline-editor,
+.custom-settings-page.is-readonly .custom-field-editor,
+.custom-settings-page.is-readonly .custom-option-edit,
+.custom-settings-page.is-readonly .custom-option-create {
+  display: none !important;
+}
+
+.custom-settings-page.is-readonly .custom-field-actions button:not(.custom-options-toggle) {
+  display: none !important;
+}

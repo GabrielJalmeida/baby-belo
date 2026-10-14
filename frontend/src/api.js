@@ -144,12 +144,19 @@ export const api = {
     return fetchAllPages('/api/v1/empresas')
   },
 
+  companyMembership(companyId) {
+    return request(`/api/v1/empresas/${companyId}/membership`, { companyId })
+  },
+
   createCompany(nome) {
     return request('/api/v1/empresas', { method: 'POST', body: { nome } })
   },
 
-  items(companyId) {
-    return fetchAllPages('/api/v1/itens', { companyId })
+  items(companyId, includeInactive = false) {
+    const path = includeInactive
+      ? '/api/v1/itens?include_inactive=true'
+      : '/api/v1/itens'
+    return fetchAllPages(path, { companyId })
   },
 
   createItem(companyId, payload) {
@@ -162,8 +169,11 @@ export const api = {
     })
   },
 
-  units(companyId) {
-    return fetchAllPages('/api/v1/unidades', { companyId })
+  units(companyId, includeInactive = false) {
+    const path = includeInactive
+      ? '/api/v1/unidades?include_inactive=true'
+      : '/api/v1/unidades'
+    return fetchAllPages(path, { companyId })
   },
 
   createUnit(companyId, payload) {

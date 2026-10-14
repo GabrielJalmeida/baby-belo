@@ -13,6 +13,12 @@ class EmpresaResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class EmpresaMembershipResponse(BaseModel):
+    empresa_id: int
+    usuario_id: int
+    papel: str
+
+
 class EmpresaUpdate(BaseModel):
     nome: str | None = Field(
         default=None,
