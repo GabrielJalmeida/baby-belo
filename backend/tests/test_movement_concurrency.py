@@ -138,9 +138,23 @@ def test_concurrent_exits_cannot_make_stock_negative():
         if company_id is not None:
             with SessionLocal() as db:
                 try:
+                    db.execute(
+                        text(
+                            "ALTER TABLE core.movimentacoes "
+                            "DISABLE TRIGGER trg_proteger_movimentacao_historica"
+                        )
+                    )
+
                     db.query(Movimentacao).filter(
                         Movimentacao.empresa_id == company_id
                     ).delete(synchronize_session=False)
+
+                    db.execute(
+                        text(
+                            "ALTER TABLE core.movimentacoes "
+                            "ENABLE TRIGGER trg_proteger_movimentacao_historica"
+                        )
+                    )
 
                     db.query(Item).filter(
                         Item.empresa_id == company_id

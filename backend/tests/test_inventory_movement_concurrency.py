@@ -155,17 +155,45 @@ def test_concurrent_inventory_open_and_movement_keep_snapshot_consistent():
         if company_id is not None:
             with SessionLocal() as db:
                 try:
+                    db.execute(
+                        text(
+                            "ALTER TABLE core.movimentacoes "
+                            "DISABLE TRIGGER trg_proteger_movimentacao_historica"
+                        )
+                    )
+
                     db.query(Movimentacao).filter(
                         Movimentacao.empresa_id == company_id
                     ).delete(synchronize_session=False)
+
+                    db.execute(
+                        text(
+                            "ALTER TABLE core.movimentacoes "
+                            "ENABLE TRIGGER trg_proteger_movimentacao_historica"
+                        )
+                    )
 
                     db.query(InventarioItem).filter(
                         InventarioItem.empresa_id == company_id
                     ).delete(synchronize_session=False)
 
+                    db.execute(
+                        text(
+                            "ALTER TABLE core.inventarios "
+                            "DISABLE TRIGGER trg_proteger_inventario_historico"
+                        )
+                    )
+
                     db.query(Inventario).filter(
                         Inventario.empresa_id == company_id
                     ).delete(synchronize_session=False)
+
+                    db.execute(
+                        text(
+                            "ALTER TABLE core.inventarios "
+                            "ENABLE TRIGGER trg_proteger_inventario_historico"
+                        )
+                    )
 
                     db.query(Item).filter(
                         Item.empresa_id == company_id

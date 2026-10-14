@@ -179,9 +179,23 @@ def test_concurrent_unit_precision_change_and_fractional_movement():
         if company_id is not None:
             with SessionLocal() as db:
                 try:
+                    db.execute(
+                        text(
+                            "ALTER TABLE core.movimentacoes "
+                            "DISABLE TRIGGER trg_proteger_movimentacao_historica"
+                        )
+                    )
+
                     db.query(Movimentacao).filter(
                         Movimentacao.empresa_id == company_id
                     ).delete(synchronize_session=False)
+
+                    db.execute(
+                        text(
+                            "ALTER TABLE core.movimentacoes "
+                            "ENABLE TRIGGER trg_proteger_movimentacao_historica"
+                        )
+                    )
 
                     db.query(Item).filter(
                         Item.empresa_id == company_id

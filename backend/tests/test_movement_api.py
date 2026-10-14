@@ -1,5 +1,7 @@
 import pytest
 
+from sqlalchemy import text
+
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from decimal import Decimal
@@ -605,9 +607,23 @@ def test_concurrent_stock_exits_cannot_overdraw_balance():
         cleanup_db = SessionLocal()
         try:
             if company_id is not None:
+                cleanup_db.execute(
+                    text(
+                        "ALTER TABLE core.movimentacoes "
+                        "DISABLE TRIGGER trg_proteger_movimentacao_historica"
+                    )
+                )
+
                 cleanup_db.query(Movimentacao).filter(
                     Movimentacao.empresa_id == company_id
                 ).delete(synchronize_session=False)
+
+                cleanup_db.execute(
+                    text(
+                        "ALTER TABLE core.movimentacoes "
+                        "ENABLE TRIGGER trg_proteger_movimentacao_historica"
+                    )
+                )
 
                 cleanup_db.query(Item).filter(
                     Item.empresa_id == company_id
