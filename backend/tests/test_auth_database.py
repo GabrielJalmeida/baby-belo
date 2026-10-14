@@ -5,7 +5,10 @@ from sqlalchemy.exc import IntegrityError
 from app.shared.config import settings
 
 
-TEST_DATABASE_URL = settings.database_url.rsplit("/", 1)[0] + "/estoque_flex_auth_test"
+TEST_DATABASE_URL = (
+    settings.test_auth_database_url
+    or settings.database_url.rsplit("/", 1)[0] + "/estoque_flex_auth_test"
+)
 
 engine = create_engine(
     TEST_DATABASE_URL,

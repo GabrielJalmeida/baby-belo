@@ -8,8 +8,8 @@ from app.shared.security import verify_password
 
 
 TEST_DATABASE_URL = (
-    settings.database_url.rsplit("/", 1)[0]
-    + "/estoque_flex_auth_test"
+    settings.test_auth_database_url
+    or settings.database_url.rsplit("/", 1)[0] + "/estoque_flex_auth_test"
 )
 
 engine = create_engine(

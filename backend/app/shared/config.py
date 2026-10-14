@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
 
     database_url: str
+    test_auth_database_url: str | None = None
 
     secret_key: str
     algorithm: str = "HS256"

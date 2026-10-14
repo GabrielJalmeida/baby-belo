@@ -189,24 +189,25 @@ A árvore é resumida; consulte os diretórios para ver todos os arquivos existe
 
 ## Executar localmente
 
-Este guia explica como instalar o Estoque Flex em uma máquina Windows usando CMD, Python, PostgreSQL e Node.js. Execute os comandos na raiz do repositório, salvo quando indicado.
+Este guia descreve uma instalação local nova no Windows usando CMD, Python, PostgreSQL e Node.js. Siga os passos na ordem. Não use os bancos de produção para testes.
 
 ### Pré-requisitos
 
-Instale o Git, Python, PostgreSQL, Node.js e npm. O comando `psql` deve estar disponível no terminal, e o servidor PostgreSQL precisa estar em execução.
+Instale Git, Python, PostgreSQL, Node.js e npm. O comando `psql` precisa estar disponível no CMD e o serviço PostgreSQL deve estar em execução.
 
-### 1. Clonar o repositório
+### 1. Clonar o repositório e abrir no VS Code
 
 ```bat
 git clone https://github.com/GabrielJalmeida/baby-belo.git
 cd baby-belo
+code .
 ```
 
-Se você já clonou o repositório, entre na pasta existente em vez de cloná-lo novamente.
+`code .` abre a pasta atual no VS Code. Se o CMD informar que `code` não é reconhecido, abra o VS Code manualmente e selecione **Arquivo → Abrir Pasta**; escolha a pasta `baby-belo` criada pelo clone.
 
 ### 2. Criar o ambiente Python
 
-Na raiz do projeto, execute:
+Execute na raiz do repositório:
 
 ```bat
 py -m venv .venv
@@ -214,94 +215,96 @@ py -m venv .venv
 python -m pip install -r backend\requirements.txt
 ```
 
-Confirme que `(.venv)` aparece no início do terminal. Sempre ative esse ambiente antes de instalar dependências ou executar a API e os testes.
+Confirme que `(.venv)` aparece no começo da linha do terminal. Se abrir outro terminal, ative novamente com `.venv\Scripts\activate` antes de executar comandos Python.
 
-### 3. Configurar o ambiente
+### 3. Criar e configurar o arquivo `.env`
 
-Crie o arquivo local a partir do exemplo:
+Na raiz do projeto, execute:
 
 ```bat
 copy backend\.env.example backend\.env
+code backend\.env
 ```
 
-Abra `backend\.env` e configure:
+O segundo comando abre o arquivo local para edição. **Não compartilhe nem publique `backend\.env`**: ele contém credenciais privadas.
 
-- `DATABASE_URL`: conexão com o banco principal local, inicialmente `estoque_flex_dev`.
-- `SECRET_KEY`: chave aleatória usada para assinar tokens JWT.
-- `CORS_ALLOWED_ORIGINS`: origens locais permitidas para o frontend.
+Configure `DATABASE_URL` com os dados do seu PostgreSQL local. No exemplo abaixo, `postgres` é o usuário e `password` é apenas um valor fictício:
 
-Gere uma chave aleatória executando:
+```dotenv
+DATABASE_URL=postgresql+psycopg://postgres:password@localhost:5432/estoque_flex_dev
+TEST_AUTH_DATABASE_URL=postgresql+psycopg://postgres:password@localhost:5432/estoque_flex_auth_test
+```
+
+Substitua `password` pela senha real do usuário PostgreSQL. É a senha que você digita quando o comando `psql -U postgres ...` solicita `Senha para o usuário postgres`. Mantenha o mesmo usuário e senha nas duas URLs, alterando o nome do banco ao final de cada uma.
+
+Se sua instalação usa outro usuário, porta ou host, ajuste esses campos. Se a senha tiver caracteres reservados em uma URL, como `@`, `:`, `/`, `#` ou `%`, codifique-os em formato URL.
+
+`SECRET_KEY` também é obrigatória. Gere uma chave aleatória executando no terminal:
 
 ```bat
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-Copie o resultado para `SECRET_KEY`. Configure a `DATABASE_URL` com o usuário, a senha, o endereço e a porta corretos do PostgreSQL. Se a senha tiver caracteres especiais, codifique-os adequadamente para uso em uma URL.
-
-Não compartilhe nem publique `backend\.env`. Ele contém credenciais locais e uma chave secreta; o `.env.example` deve conter apenas valores fictícios.
+Copie o resultado e substitua o valor ilustrativo de `SECRET_KEY` no `backend\.env`. Não use o texto de exemplo como chave real. Para uso local, mantenha `CORS_ALLOWED_ORIGINS` com as origens `localhost:5173` e `127.0.0.1:5173`.
 
 ### 4. Criar os bancos locais
 
-A suíte atual usa o banco configurado em `DATABASE_URL` e um banco auxiliar chamado `estoque_flex_auth_test`.
-
-Com o PostgreSQL em execução, crie os dois bancos:
+As URLs de exemplo usam dois bancos: um para a aplicação e outro exclusivo dos testes de autenticação. Crie-os no PostgreSQL:
 
 ```bat
 psql -U postgres -d postgres -c "CREATE DATABASE estoque_flex_dev;"
 psql -U postgres -d postgres -c "CREATE DATABASE estoque_flex_auth_test;"
 ```
 
-Se algum banco já existir, não tente criá-lo de novo. Confira se é um banco local dedicado a esta instalação e se pode ser utilizado com segurança.
+Se o CMD informar que um banco já existe, **não o apague nem recrie sem verificar seus dados**. Para fazer uma instalação de validação no mesmo computador, escolha nomes novos, por exemplo `estoque_flex_validacao` e `estoque_flex_auth_validacao`; altere o nome final em cada URL no `.env` e use exatamente esses mesmos nomes nos comandos de criação e instalação a seguir.
 
-Se seu usuário PostgreSQL não for `postgres`, adapte os comandos à sua instalação e às permissões disponíveis.
+Se seu usuário PostgreSQL não for `postgres`, adapte os comandos à sua instalação.
 
 ### 5. Aplicar o schema nos dois bancos
 
-Ainda na raiz do repositório, execute:
+Na raiz do repositório, aplique os scripts no banco principal:
 
 ```bat
 psql -h localhost -p 5432 -U postgres -d estoque_flex_dev -v ON_ERROR_STOP=1 -f database\apply_all.sql
 ```
 
-Depois, prepare o banco auxiliar:
+Depois aplique a estrutura no banco auxiliar de testes:
 
 ```bat
 psql -h localhost -p 5432 -U postgres -d estoque_flex_auth_test -v ON_ERROR_STOP=1 -f database\apply_all.sql
 ```
 
-Cada comando aplica os scripts de CORE, AUTH e CUSTOM, incluindo tabelas, relacionamentos, restrições, índices, funções e gatilhos.
+Se você escolheu nomes alternativos no passo anterior, substitua `estoque_flex_dev` e `estoque_flex_auth_test` pelos nomes configurados nas duas URLs.
 
-A mensagem esperada no final de cada execução é:
+A mensagem esperada ao final de cada comando é `Estoque Flex: schema aplicado com sucesso.` O script cria estruturas CORE, AUTH e CUSTOM, incluindo tabelas, relacionamentos, restrições, índices, funções e gatilhos.
 
-```text
-Estoque Flex: schema aplicado com sucesso.
-```
+**Não execute `database\apply_all.sql` novamente em um banco já instalado sem avaliar antes seu estado.** Esse script prepara um banco novo; não é um sistema geral de migrações.
 
-A `DATABASE_URL` em `backend\.env` deve apontar para `estoque_flex_dev`, com as credenciais corretas. Os testes de autenticação usam o banco auxiliar separadamente.
+### 6. Executar os testes do backend
 
-**Importante:** `database\apply_all.sql` prepara um schema em um banco novo; não é um mecanismo de atualização de bancos existentes. Não o reaplique indiscriminadamente em bancos que já contenham dados.
-
-### 6. Executar a suíte de testes
-
-Com `(.venv)` ativo e os dois bancos preparados, execute na raiz:
+Com `(.venv)` ativo, execute na raiz do repositório:
 
 ```bat
 python -m pytest backend\tests -q
 ```
 
-A suíte valida serviços, endpoints, autenticação, isolamento entre empresas, integridade do banco e concorrência.
+A suíte valida serviços, endpoints, autenticação, isolamento entre empresas, integridade do banco e concorrência. Execute-a somente contra bancos locais dedicados a desenvolvimento/testes, nunca contra produção. Alguns testes criam dados temporários e a limpeza de cenários de teste desativa temporariamente gatilhos de proteção dentro da transação de limpeza.
 
-Os testes criam e limpam registros temporários. Alguns procedimentos de limpeza desativam temporariamente gatilhos de proteção dentro de transações de teste. **Execute a suíte somente contra bancos locais dedicados aos testes, nunca contra produção.**
+### 7. Criar a primeira conta para entrar no sistema
 
-Se houver erro, examine primeiro a causa específica:
+O frontend não oferece cadastro público de usuário. Depois de instalar o banco e executar os testes, crie a primeira conta local usando o utilitário de inicialização:
 
-- `password authentication failed`: confira usuário e senha na `DATABASE_URL`.
-- `database does not exist`: crie o banco indicado pelo erro.
-- `relation does not exist`: confira se o schema foi aplicado ao banco correto.
-- `No module named ...`: ative a `.venv` e instale as dependências.
-- Erro de `SECRET_KEY`: confirme se a variável existe e contém uma chave suficientemente longa.
+```bat
+python backend\create_initial_user.py
+```
 
-### 7. Iniciar a API
+Informe o nome, e-mail, nome da primeira empresa e uma senha. A senha é solicitada sem aparecer na tela. O utilitário cria o usuário com hash de senha, cria a primeira empresa e associa o usuário a ela com o papel `OWNER`.
+
+Por segurança, o utilitário funciona apenas quando `DATABASE_URL` aponta para um PostgreSQL local. Se já houver usuários no banco, ele informa a quantidade encontrada e solicita uma confirmação. Digite `CRIAR` somente se o banco indicado em `DATABASE_URL` for o banco local correto e você desejar adicionar uma nova conta com o papel `OWNER`. Os usuários existentes não serão apagados nem modificados por essa operação.
+
+Se a operação for cancelada, nenhum novo usuário será criado. Utilize um e-mail válido e uma senha de 8 a 128 caracteres. Guarde as credenciais para entrar no sistema. Execute o utilitário somente no banco local de desenvolvimento, nunca em produção.
+
+### 8. Iniciar a API
 
 Na raiz do projeto, com a `.venv` ativa, execute:
 
@@ -309,18 +312,14 @@ Na raiz do projeto, com a `.venv` ativa, execute:
 uvicorn app.main:app --reload --app-dir backend
 ```
 
-A API estará disponível em `http://127.0.0.1:8000`.
-
-Documentação interativa:
+Mantenha o terminal aberto. A documentação interativa estará disponível em:
 
 - Swagger UI: http://127.0.0.1:8000/docs
 - ReDoc: http://127.0.0.1:8000/redoc
 
-Mantenha esse terminal aberto enquanto utilizar o sistema.
+### 9. Iniciar o frontend
 
-### 8. Iniciar o frontend
-
-Abra um segundo terminal CMD, na raiz do repositório, e execute:
+Abra um segundo terminal CMD na raiz do repositório e execute:
 
 ```bat
 cd frontend
@@ -328,30 +327,29 @@ npm install
 npm run dev
 ```
 
-Abra no navegador a URL informada pelo Vite, normalmente `http://localhost:5173`.
+Abra a URL mostrada pelo Vite, normalmente `http://localhost:5173`. Na tela de login, use o e-mail e a senha criados no passo anterior. Após entrar, selecione a empresa criada pelo utilitário.
 
-Se a interface não conseguir acessar a API, confira `frontend/src/api.js` e a configuração do Vite para verificar a URL utilizada pelo frontend.
+Se a interface não se conectar à API, confira `frontend/src/api.js` e a configuração do Vite para confirmar a URL utilizada pelo frontend.
 
-### 9. Validar o frontend
+### 10. Validar o frontend
 
-Ainda na pasta `frontend`, execute:
+Ainda dentro de `frontend`, execute:
 
 ```bat
 npm run lint
 npm run build
 ```
 
-O primeiro comando verifica o lint e o segundo valida a compilação de produção.
+### Resumo da instalação
 
-### Resumo da ordem de instalação
-
-1. Clonar o repositório e preparar a `.venv`.
-2. Configurar `backend\.env`.
-3. Criar `estoque_flex_dev` e `estoque_flex_auth_test`.
-4. Aplicar `database\apply_all.sql` nos dois bancos.
-5. Executar `python -m pytest backend\tests -q`.
-6. Iniciar a API e o frontend em terminais separados.
-7. Executar o lint e o build do frontend.
+1. Clonar o repositório e abrir a pasta com `code .`.
+2. Criar a `.venv` e instalar as dependências Python.
+3. Copiar e configurar `backend\.env`, incluindo a senha PostgreSQL real e uma `SECRET_KEY` aleatória.
+4. Criar os bancos definidos nas duas URLs e aplicar `database\apply_all.sql` em cada banco.
+5. Rodar a suíte do backend.
+6. Executar `python backend\create_initial_user.py` para criar a conta `OWNER` inicial.
+7. Iniciar API e frontend e entrar com as credenciais recém-criadas.
+8. Validar o frontend com lint e build.
 
 ## API
 
