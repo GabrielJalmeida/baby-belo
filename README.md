@@ -426,3 +426,53 @@ O frontend deve consumir a API e não duplicar as regras do domínio. Traduzir e
   <strong>Estoque Flex</strong><br />
   <sub>Estrutura estável para o que é crítico. Flexibilidade para o que muda.</sub>
 </p>
+
+---
+
+## Informações acadêmicas
+
+Esta seção documenta os requisitos do sistema conforme solicitado na disciplina de Engenharia de Software. **Requisitos funcionais (RF)** descrevem o que o sistema faz; **requisitos não funcionais (RNF)** descrevem as qualidades e restrições com que ele deve fazer isso.
+
+### Requisitos funcionais
+
+| ID | Módulo | Requisito |
+|---|---|---|
+| RF01 | AUTH | O sistema deve permitir que o usuário faça login com e-mail e senha, recebendo um token JWT. |
+| RF02 | AUTH | O sistema deve permitir consultar os dados do usuário autenticado. |
+| RF03 | AUTH | O sistema deve definir o contexto da empresa de cada operação protegida por meio do cabeçalho `X-Company-ID`. |
+| RF04 | AUTH | O sistema deve controlar as permissões por papéis (OWNER, OPERATOR e VIEWER). |
+| RF05 | AUTH | O sistema deve permitir criar a primeira conta de usuário, com a primeira empresa e o papel OWNER, por meio de um utilitário de inicialização. |
+| RF06 | CORE | O sistema deve permitir criar, listar, consultar e atualizar empresas. |
+| RF07 | CORE | O sistema deve permitir cadastrar, listar, atualizar e ativar/inativar unidades de medida. |
+| RF08 | CORE | O sistema deve permitir cadastrar, consultar, atualizar e ativar/inativar itens de estoque. |
+| RF09 | CORE | O sistema deve permitir registrar movimentações de entrada, saída e ajuste de estoque. |
+| RF10 | CORE | O sistema deve permitir consultar o saldo de estoque dos itens e listar os itens com estoque baixo. |
+| RF11 | CORE | O sistema deve permitir consultar o histórico de movimentações de cada item. |
+| RF12 | CORE | O sistema deve permitir abrir inventários, registrar contagens, concluir ou cancelar o inventário e consultar o snapshot dos itens. |
+| RF13 | CUSTOM | O sistema deve permitir criar categorias de itens por empresa. |
+| RF14 | CUSTOM | O sistema deve permitir definir campos personalizados por categoria, incluindo campos do tipo lista com suas opções. |
+| RF15 | CUSTOM | O sistema deve permitir associar itens a categorias e registrar os valores dos campos personalizados de cada item. |
+| RF16 | Frontend | O sistema deve oferecer interface web para autenticação e seleção de empresa, itens, unidades, movimentações, detalhes de item e configuração de campos personalizados. |
+| RF17 | Frontend | O sistema deve exibir ou ocultar os controles da interface de acordo com o papel do usuário. |
+
+### Requisitos não funcionais
+
+| ID | Categoria | Requisito |
+|---|---|---|
+| RNF01 | Segurança | As senhas devem ser armazenadas apenas como hash (Argon2), nunca em texto puro. |
+| RNF02 | Segurança | A autenticação deve usar tokens JWT com assinatura validada e tempo de expiração. |
+| RNF03 | Segurança | As permissões e o vínculo do usuário com a empresa devem ser validados no backend; os controles visuais do frontend não substituem a autorização na API. |
+| RNF04 | Segurança | Os dados de uma empresa não devem ser acessíveis por usuários de outra empresa (isolamento multiempresa). |
+| RNF05 | Segurança | O CORS deve aceitar apenas origens explicitamente configuradas. |
+| RNF06 | Integridade | O saldo de estoque deve ser derivado das movimentações e não pode ser editado manualmente no item. |
+| RNF07 | Integridade | As quantidades devem usar precisão decimal compatível com `NUMERIC(18,4)`. |
+| RNF08 | Integridade | O histórico de movimentações deve ser preservado, sem exclusão para ocultar erros operacionais. |
+| RNF09 | Confiabilidade | Saídas concorrentes não podem deixar o saldo negativo; esse comportamento é coberto por teste de regressão. |
+| RNF10 | Validação | Os textos devem respeitar limites de tamanho (curto: 255; longo: 10.000; descrições: 2.000; observações: 5.000 caracteres), e a configuração JSON de campos é limitada a 16 KiB. |
+| RNF11 | Desempenho | As listagens selecionadas devem ser paginadas, com `limit` padrão de 50 e máximo de 100, e `offset` padrão de 0. |
+| RNF12 | Manutenibilidade | O backend deve seguir arquitetura de monólito modular, na qual CORE não depende de AUTH nem de CUSTOM, e a orquestração entre domínios fica na camada `application`. |
+| RNF13 | Manutenibilidade | Atualizações parciais (PATCH) não devem alterar campos omitidos na requisição. |
+| RNF14 | Testabilidade | O backend deve ter testes automatizados com pytest (468 testes aprovados na última execução local), e o frontend deve passar em lint e build. |
+| RNF15 | Usabilidade | O frontend deve traduzir os erros 401, 403, 404, 409 e 422 da API em mensagens compreensíveis e não indicar sucesso quando a API rejeitar uma operação. |
+| RNF16 | Interoperabilidade | A API deve seguir o padrão REST sob o prefixo `/api/v1`, com documentação interativa (Swagger UI e ReDoc) gerada pelo FastAPI. |
+| RNF17 | Portabilidade | O sistema deve ser executável localmente em Windows com Python, PostgreSQL e Node.js, seguindo o guia de instalação deste README. |
