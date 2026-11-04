@@ -628,7 +628,7 @@ export default function MovementsPage({ companyId, onLogout, onNavigateProducts,
               <span className="movement-guidance-symbol negative">−</span>
               <span><strong>Saída</strong><small>Subtrai quantidade do saldo</small></span>
             </div>
-            <p>O saldo oficial é calculado pelo backend a partir das movimentações registradas.</p>
+            <p>O saldo acompanha as entradas, saídas e ajustes.</p>
           </section>
         </aside>
       </div>
@@ -713,9 +713,12 @@ export default function MovementsPage({ companyId, onLogout, onNavigateProducts,
       </section>
 
       <p className="records-page-note">
-        Esta tela consulta o histórico por produto, conforme a API atual. O sistema não permite
+        Consulte aqui o histórico de cada produto. O sistema não permite
         excluir movimentações por esta interface.
       </p>
     </section>
   )
 }
+
+
+

@@ -519,7 +519,7 @@ export default function ProductsPage({
           return setFormError(`O campo personalizado "${field.nome}" é obrigatório.`)
         }
         if (isBlank && record) {
-          return setFormError(`O campo "${field.nome}" já possui um valor salvo. A API atual não oferece exclusão de valores personalizados; mantenha o valor ou restaure-o antes de salvar.`)
+          return setFormError(`O campo "${field.nome}" já possui um valor salvo. Mantenha o valor existente ou restaure-o antes de salvar.`)
         }
         if (!isBlank) {
           try {
@@ -905,7 +905,7 @@ export default function ProductsPage({
           </div>
           <span className="table-live-indicator">
             <i />
-            Dados da API
+            Dados do estoque
           </span>
         </div>
 
@@ -922,7 +922,7 @@ export default function ProductsPage({
         ) : loadError ? (
           <ProductEmpty
             title="Não foi possível carregar os produtos"
-            description="Verifique a conexão com o backend e tente novamente."
+            description="Reabra esta tela para tentar novamente."
           />
         ) : filteredItems.length === 0 ? (
           search ? (
@@ -1101,3 +1101,6 @@ export default function ProductsPage({
     </section>
   )
 }
+
+
+

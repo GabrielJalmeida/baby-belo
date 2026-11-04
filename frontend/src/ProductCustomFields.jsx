@@ -32,7 +32,7 @@ function fieldInput(field, value, options, onChange, disabled) {
       return <input {...common} type="date" />
     case 'LISTA': {
       const fieldOptions = options[String(field.id)] ?? []
-      const optionIsMissing = value !== '' && !fieldOptions.some((option) => String(option.id) === String(value))
+      const optionIsMissing = value != null && value !== '' && !fieldOptions.some((option) => String(option.id) === String(value))
       return (
         <select {...common} className="record-field-select">
           <option value="">Selecione uma opção</option>
@@ -116,8 +116,8 @@ export default function ProductCustomFields({
             : categoryLocked
               ? 'A categoria fica bloqueada porque o produto já possui valores personalizados salvos. Isso evita deixar valores incompatíveis.'
               : originalCategoryId
-                ? 'Este produto já possui uma categoria. A API não oferece a ação de remover totalmente a associação.'
-                : 'A categoria é opcional. Cadastre categorias e campos em Configurações CUSTOM.'}
+                ? 'Este produto já possui uma categoria. O produto mantém a categoria já cadastrada.'
+                : 'A categoria é opcional. Cadastre categorias e campos em Categorias e campos.'}
         </small>
       </div>
 
@@ -155,3 +155,7 @@ export default function ProductCustomFields({
     </section>
   )
 }
+
+
+
+

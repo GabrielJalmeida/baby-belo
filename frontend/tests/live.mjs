@@ -1,0 +1,68 @@
+import assert from 'node:assert/strict'
+import { api, session } from '../src/api.js'
+import { resolveAtelier } from '../src/atelier.js'
+
+const endpoint=process.env.BABY_BELO_TEST_API
+assert.equal(endpoint,'http://127.0.0.1:8001')
+const nativeFetch=globalThis.fetch
+const storage=new Map()
+globalThis.sessionStorage={getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,String(value)),removeItem:key=>storage.delete(key)}
+globalThis.window=new EventTarget()
+globalThis.fetch=(path,options)=>nativeFetch(endpoint+path,options)
+const email=process.env.BABY_BELO_TEST_EMAIL
+const password=process.env.BABY_BELO_TEST_PASSWORD
+await assert.rejects(api.login(email,password+'-invalid'),error=>error.status===401)
+session.saveToken((await api.login(email,password)).access_token)
+const company=resolveAtelier(await api.companies())
+assert.equal((await api.companyMembership(company.id)).papel,'OWNER')
+await assert.rejects(api.items(Number(process.env.BABY_BELO_OTHER_COMPANY)),error=>error.status===403)
+const c=company.id
+const unit=await api.createUnit(c,{nome:'Unidade de teste',simbolo:'un',permite_decimal:false})
+await api.updateUnit(c,unit.id,{simbolo:'UN'})
+const category=await api.createCustomCategory(c,{nome:'Bolsas de teste',descricao:'Validação isolada'})
+await api.updateCustomCategory(c,category.id,{descricao:'Categoria atualizada'})
+const field=await api.createCustomField(c,{categoria_id:category.id,nome:'Cor',tipo_dado:'LISTA',obrigatorio:false,configuracao:{},ordem_exibicao:0})
+const option=await api.createCustomOption(c,{campo_id:field.id,valor:'Azul',ordem_exibicao:0})
+await api.updateCustomOption(c,option.id,{valor:'Azul claro'})
+const item=await api.createItem(c,{nome:'Bolsa validada',unidade_id:unit.id,estoque_minimo:5})
+await api.assignItemCategory(c,item.id,category.id)
+const value=await api.createItemCustomValue(c,item.id,{campo_id:field.id,opcao_id:option.id})
+await api.updateItemCustomValue(c,value.id,{opcao_id:option.id})
+await api.updateItem(c,item.id,{nome:'Bolsa atualizada',descricao:'Persistência real'})
+await api.createMovement(c,{item_id:item.id,tipo:'ENTRADA',quantidade:8,motivo:'Teste isolado'})
+await api.createMovement(c,{item_id:item.id,tipo:'SAIDA',quantidade:5,motivo:'Teste isolado'})
+assert.equal(Number((await api.itemBalance(c,item.id)).saldo_atual),3)
+assert.ok((await api.lowStockAll(c)).some(row=>row.item_id===item.id))
+assert.equal((await api.itemMovements(c,item.id)).length,2)
+await assert.rejects(api.createMovement(c,{item_id:item.id,tipo:'SAIDA',quantidade:20}),error=>error.status===409)
+const inventory=await api.createInventory(c,{observacao:'Validação isolada'})
+await assert.rejects(api.createMovement(c,{item_id:item.id,tipo:'ENTRADA',quantidade:1}),error=>error.status===409)
+for(const row of (await api.inventoryDetail(c,inventory.id)).itens) await api.recordInventoryCount(c,inventory.id,row.item_id,6)
+assert.equal((await api.completeInventory(c,inventory.id)).status,'CONCLUIDO')
+assert.equal(Number((await api.itemBalance(c,item.id)).saldo_atual),6)
+const cancelled=await api.createInventory(c,{})
+assert.equal((await api.cancelInventory(c,cancelled.id)).status,'CANCELADO')
+// Simulate a fresh frontend session: all state must be read again over HTTP.
+session.clear()
+session.saveToken((await api.login(email,password)).access_token)
+const restored=resolveAtelier(await api.companies())
+assert.equal(restored.id,c)
+assert.ok((await api.items(c)).some(row=>row.id===item.id&&row.nome==='Bolsa atualizada'))
+assert.equal(Number((await api.itemBalance(c,item.id)).saldo_atual),6)
+assert.equal((await api.itemCustomValues(c,item.id))[0].opcao_id,option.id)
+await api.updateItem(c,item.id,{ativo:false})
+assert.ok(!(await api.items(c)).some(row=>row.id===item.id))
+assert.ok((await api.items(c,true)).some(row=>row.id===item.id&&!row.ativo))
+await api.updateItem(c,item.id,{ativo:true})
+await api.updateCustomField(c,field.id,{ativo:false})
+await api.updateCustomCategory(c,category.id,{ativo:false})
+await api.updateUnit(c,unit.id,{ativo:false})
+// Check the real read-only role with a separately authenticated account.
+session.clear()
+session.saveToken((await api.login(process.env.BABY_BELO_VIEWER_EMAIL,process.env.BABY_BELO_VIEWER_PASSWORD)).access_token)
+assert.equal((await api.companyMembership(c)).papel,'VIEWER')
+assert.ok((await api.items(c)).length>0)
+await assert.rejects(api.updateItem(c,item.id,{ativo:false}),error=>error.status===403)
+session.clear()
+await assert.rejects(api.items(c),error=>error.status===401)
+console.log('Integração HTTP + PostgreSQL: login, vínculo, isolamento, perfil de consulta, produtos, unidades, categorias, campos, opções, movimentações, saldo, histórico, inventários, inativação e persistência passaram.')

@@ -437,7 +437,7 @@ export default function UnitsPage({ companyId, onLogout, canWrite = true }) {
           </div>
           <span className="table-live-indicator">
             <i />
-            Dados da API
+            Dados do estoque
           </span>
         </div>
 
@@ -454,7 +454,7 @@ export default function UnitsPage({ companyId, onLogout, canWrite = true }) {
         ) : loadError ? (
           <div className="records-empty">
             <strong>Não foi possível carregar as unidades</strong>
-            <p>Verifique a conexão com o backend e tente novamente.</p>
+            <p>Reabra esta tela para tentar novamente.</p>
           </div>
         ) : filteredUnits.length === 0 ? (
           search ? (
@@ -620,3 +620,6 @@ export default function UnitsPage({ companyId, onLogout, canWrite = true }) {
     </section>
   )
 }
+
+
+

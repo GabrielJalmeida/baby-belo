@@ -1,3 +1,5 @@
+> **Baby Belo — execução local atual:** veja [como iniciar, criar sua conta e testar](docs/EXECUCAO_LOCAL.md). A interface oficial usa a identidade Baby Belo e o banco local começa vazio.
+
 <p align="center">
   <img src="docs/assets/estoque-flex-hero.svg" alt="Estoque Flex — controle confiável, estrutura flexível" width="100%" />
 </p>

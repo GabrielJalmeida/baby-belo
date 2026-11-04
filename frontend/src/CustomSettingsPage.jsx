@@ -540,10 +540,10 @@ export default function CustomSettingsPage({ companyId, onLogout, canWrite = tru
                   <div className="custom-editor-title"><div><span className="custom-kicker">CONFIGURAÇÃO DO CAMPO</span><h4>{fieldFormMode === 'edit' ? 'Editar campo' : 'Adicionar campo'}</h4></div><button type="button" className="custom-icon-button" onClick={closeFieldForm} aria-label="Fechar formulário" disabled={fieldSaving}>×</button></div>
                   <div className="custom-form-grid">
                     <label className="custom-span-two">Nome do campo<input autoFocus maxLength={120} value={fieldDraft.nome} onChange={(event) => setFieldDraft((previous) => ({ ...previous, nome: event.target.value }))} placeholder="Ex.: Composição, tamanho, acabamento" required /></label>
-                    <label>Tipo de dado<select value={fieldDraft.tipo_dado} onChange={(event) => setFieldDraft((previous) => ({ ...previous, tipo_dado: event.target.value }))}>{FIELD_TYPES.map((type) => <option value={type.value} key={type.value}>{type.label}</option>)}</select>{fieldFormMode === 'edit' && <small className="custom-help">Se já houver valores, o backend pode bloquear a troca de tipo.</small>}</label>
+                    <label>Tipo de dado<select value={fieldDraft.tipo_dado} onChange={(event) => setFieldDraft((previous) => ({ ...previous, tipo_dado: event.target.value }))}>{FIELD_TYPES.map((type) => <option value={type.value} key={type.value}>{type.label}</option>)}</select>{fieldFormMode === 'edit' && <small className="custom-help">Mantenha o tipo compatível com os valores já preenchidos.</small>}</label>
                     <label>Ordem de exibição<input type="number" min="0" step="1" value={fieldDraft.ordem_exibicao} onChange={(event) => setFieldDraft((previous) => ({ ...previous, ordem_exibicao: event.target.value }))} required /></label>
-                    <label className="custom-checkbox-label"><input type="checkbox" checked={fieldDraft.obrigatorio} onChange={(event) => setFieldDraft((previous) => ({ ...previous, obrigatorio: event.target.checked }))} /><span><strong>Campo obrigatório</strong><small>O preenchimento será exigido na experiência de cadastro integrada.</small></span></label>
-                    <label className="custom-span-two">Configuração (JSON)<textarea className="custom-json-input" spellCheck="false" rows={4} value={fieldDraft.configuracao} onChange={(event) => setFieldDraft((previous) => ({ ...previous, configuracao: event.target.value }))} /><small className="custom-help">Use um objeto JSON. Para começar sem restrições adicionais, mantenha <code>{'{}'}</code>.</small></label>
+                    <label className="custom-checkbox-label"><input type="checkbox" checked={fieldDraft.obrigatorio} onChange={(event) => setFieldDraft((previous) => ({ ...previous, obrigatorio: event.target.checked }))} /><span><strong>Campo obrigatório</strong><small>Será necessário preencher este campo ao cadastrar o produto.</small></span></label>
+                    <details className="custom-span-two"><summary>Configurações avançadas (opcional)</summary><label>Regras adicionais<textarea className="custom-json-input" spellCheck="false" rows={4} value={fieldDraft.configuracao} onChange={(event) => setFieldDraft((previous) => ({ ...previous, configuracao: event.target.value }))} /><small className="custom-help">Esta área é opcional e pode ser ajustada pelo responsável técnico. Para usar o padrão, mantenha <code>{'{}'}</code>.</small></label></details>
                   </div>
                   {fieldFormError && <p className="custom-inline-error" role="alert">{fieldFormError}</p>}
                   <div className="custom-editor-actions"><button className="custom-button-secondary" type="button" onClick={closeFieldForm} disabled={fieldSaving}>Cancelar</button><button className="custom-button-primary" type="submit" disabled={fieldSaving}>{fieldSaving ? 'Salvando…' : 'Salvar campo'}</button></div>
@@ -608,3 +608,6 @@ export default function CustomSettingsPage({ companyId, onLogout, canWrite = tru
     </section>
   )
 }
+
+
+

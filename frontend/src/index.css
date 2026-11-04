@@ -1,23 +1,23 @@
 :root {
   font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: #272b3d;
-  background: #f7f8fc;
+  color: light-dark(#302534, #f4eaf6);
+  background: light-dark(#fffcfa, #2c2532);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --color-bg: #f7f8fc;
+  --color-bg: #fffcfa;
   --color-surface: #ffffff;
   --color-surface-soft: #fbfbfe;
-  --color-text: #272b3d;
+  --color-text: #302534;
   --color-text-muted: #737b90;
-  --color-border: #e5e8f1;
-  --color-primary: #6265c9;
-  --color-primary-hover: #5357b7;
-  --color-primary-soft: #eeefff;
-  --color-lavender: #f1efff;
-  --color-blue-soft: #edf4ff;
+  --color-border: light-dark(#e5e8f1, #65516b);
+  --color-primary: #704875;
+  --color-primary-hover: #5c3862;
+  --color-primary-soft: #f4edf5;
+  --color-lavender: #f4edf5;
+  --color-blue-soft: #e9f5fa;
   --color-mint-soft: #eaf7f0;
   --color-amber-soft: #fff4df;
   --color-rose-soft: #fff0f0;
@@ -61,12 +61,12 @@ body {
   background:
     radial-gradient(
       ellipse at 9% 9%,
-      rgb(221 228 255 / 52%),
+      light-dark(rgb(221 228 255 / 52%), #2c2532),
       transparent 31rem
     ),
     radial-gradient(
       ellipse at 96% 89%,
-      rgb(231 242 238 / 48%),
+      light-dark(rgb(231 242 238 / 48%), #2c2532),
       transparent 30rem
     ),
     var(--color-bg);
@@ -118,8 +118,8 @@ svg {
 }
 
 ::selection {
-  color: #272b3d;
-  background: #dedfff;
+  color: light-dark(#302534, #f4eaf6);
+  background: light-dark(#dedfff, #2c2532);
 }
 
 @media (prefers-reduced-motion: reduce) {

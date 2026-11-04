@@ -1,9 +1,9 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '')
+const API_BASE_URL = (import.meta.env?.VITE_API_BASE_URL ?? '')
   .trim()
   .replace(/\/+$/, '')
 
-const TOKEN_KEY = 'estoque-flex.access-token'
-const COMPANY_KEY = 'estoque-flex.active-company-id'
+const TOKEN_KEY = 'baby-belo.access-token'
+const COMPANY_KEY = 'baby-belo.active-company-id'
 
 export class ApiError extends Error {
   constructor(message, status = 0, payload = null) {
@@ -19,6 +19,7 @@ export const session = {
     return sessionStorage.getItem(TOKEN_KEY)
   },
   saveToken(token) {
+    if (typeof token !== 'string' || !token.trim()) throw new ApiError('Não foi possível validar o acesso. Tente entrar novamente.')
     sessionStorage.setItem(TOKEN_KEY, token)
   },
   getCompanyId() {
@@ -48,8 +49,9 @@ function errorMessage(status, payload) {
   if (status === 422) {
     if (Array.isArray(payload?.detail)) {
       return payload.detail.map((item) => {
-        const field = item.loc?.at(-1)
-        return field ? `${field}: ${item.msg}` : item.msg
+        const labels = { nome: 'nome', unidade_id: 'unidade de medida', quantidade: 'quantidade', estoque_minimo: 'estoque mínimo', descricao: 'descrição', quantidade_contada: 'contagem', observacao: 'observação', categoria_id: 'categoria', configuracao: 'configuração do campo' }
+        const field = labels[item.loc?.at(-1)]
+        return field ? `Confira o campo ${field}.` : 'Confira os dados preenchidos.'
       }).join(' · ')
     }
     return typeof payload?.detail === 'string'
@@ -68,7 +70,7 @@ async function readResponse(response) {
   try {
     return JSON.parse(text)
   } catch {
-    return { detail: text }
+    throw new ApiError('O serviço não respondeu como esperado. Verifique se o backend está em execução.', response.status)
   }
 }
 
@@ -82,6 +84,7 @@ export async function request(path, options = {}) {
   headers.set('Accept', 'application/json')
   const token = session.getToken()
 
+  if (auth && !token) throw new ApiError('Entre na sua conta para continuar.', 401)
   if (auth && token) headers.set('Authorization', `Bearer ${token}`)
   if (companyId !== undefined && companyId !== null) {
     headers.set('X-Company-ID', String(companyId))
@@ -103,10 +106,18 @@ export async function request(path, options = {}) {
     })
   } catch (error) {
     if (error.name === 'AbortError') throw error
-    throw new ApiError('Não foi possível conectar à API. Verifique se o backend está ativo.')
+    throw new ApiError('Não foi possível conectar ao sistema. Verifique se o serviço está em execução e tente novamente.')
   }
 
-  const payload = await readResponse(response)
+  let payload
+  try { payload = await readResponse(response) } catch (error) {
+    if (response.ok) throw error
+    payload = null
+  }
+  if (response.status === 401 && auth) {
+    session.clear()
+    window.dispatchEvent(new Event('baby-belo:session-expired'))
+  }
   if (!response.ok) {
     throw new ApiError(errorMessage(response.status, payload), response.status, payload)
   }
@@ -148,9 +159,6 @@ export const api = {
     return request(`/api/v1/empresas/${companyId}/membership`, { companyId })
   },
 
-  createCompany(nome) {
-    return request('/api/v1/empresas', { method: 'POST', body: { nome } })
-  },
 
   items(companyId, includeInactive = false) {
     const path = includeInactive
@@ -328,3 +336,4 @@ export const api = {
     return fetchAllPages('/api/v1/estoque/baixo', { companyId })
   },
 }
+

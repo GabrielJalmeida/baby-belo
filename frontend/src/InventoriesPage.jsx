@@ -320,7 +320,7 @@ export default function InventoriesPage({ companyId, onLogout, canWrite = true }
               </div>
 
               {inventoryRows.length === 0 ? (
-                <EmptyPanel title="Este inventário não possui itens" description="Não há itens no snapshot retornado pela API." />
+                <EmptyPanel title="Este inventário não possui itens" description="Nenhum produto foi incluído nesta contagem." />
               ) : (
                 <div className="inventory-table-wrap">
                   <table className="inventory-table">
@@ -359,3 +359,6 @@ export default function InventoriesPage({ companyId, onLogout, canWrite = true }
     </div>
   )
 }
+
+
+

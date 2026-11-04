@@ -82,7 +82,7 @@ export default function StockLowPage({ companyId, onLogout, onNavigateProducts, 
           <span className="stock-low-summary-icon"><WarningIcon /></span>
           <div>
             <strong>{loading ? 'Consultando estoque…' : `${items.length} ${items.length === 1 ? 'item precisa' : 'itens precisam'} de atenção`}</strong>
-            <p>Itens retornados pela consulta oficial de estoque baixo da API.</p>
+            <p>Produtos que precisam de reposição.</p>
           </div>
         </div>
         <div className="stock-low-actions">
@@ -176,7 +176,10 @@ export default function StockLowPage({ companyId, onLogout, onNavigateProducts, 
         </div>
       )}
 
-      <p className="stock-low-note">O saldo é calculado e validado pelo backend. Para repor ou corrigir quantidades, registre uma movimentação; não edite o saldo diretamente.</p>
+      <p className="stock-low-note">O saldo acompanha as movimentações registradas. Para repor ou corrigir quantidades, registre uma movimentação; não edite o saldo diretamente.</p>
     </section>
   )
 }
+
+
+

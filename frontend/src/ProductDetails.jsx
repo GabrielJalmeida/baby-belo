@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, api } from './api.js'
 import './ProductDetails.css'
 
@@ -211,10 +211,26 @@ export default function ProductDetails({
   useEffect(() => {
     function handleKeyDown(event) {
       if (event.key === 'Escape') onClose()
+      if (event.key === 'Tab') {
+        const controls = [...dialogRef.current.querySelectorAll('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')]
+        const first = controls[0]
+        const last = controls.at(-1)
+        if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { event.preventDefault(); last?.focus() }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
+
+  const dialogRef = useRef(null)
+  useEffect(() => {
+    const previousFocus = document.activeElement
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    dialogRef.current.focus()
+    return () => { document.body.style.overflow = overflow; previousFocus?.focus() }
+  }, [])
 
   const fieldById = useMemo(
     () => new Map(customFields.map((field) => [Number(field.id), field])),
@@ -275,6 +291,8 @@ export default function ProductDetails({
     >
       <section
         className="product-detail-dialog"
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-detail-title"
@@ -458,3 +476,6 @@ export default function ProductDetails({
     </div>
   )
 }
+
+
+

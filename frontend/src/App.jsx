@@ -7,19 +7,11 @@ import InventoriesPage from './InventoriesPage.jsx'
 import StockLowPage from './StockLowPage.jsx'
 import CustomSettingsPage from './CustomSettingsPage.jsx'
 import './App.css'
+import SettingsPage from './SettingsPage.jsx'
+import { resolveAtelier } from './atelier.js'
+import { Photo } from './Landing.jsx'
 
-function BrandMark() {
-  return (
-    <span className="brand-mark" aria-hidden="true">
-      <svg viewBox="0 0 40 40" fill="none">
-        <rect x="1" y="1" width="38" height="38" rx="13" fill="currentColor" fillOpacity=".08" />
-        <path d="M11 14.5 20 9l9 5.5v11L20 31l-9-5.5v-11Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-        <path d="m11.5 14.5 8.5 5 8.5-5M20 20v10" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
-        <path d="m24 11.5 5 3" stroke="#8C8AE8" strokeWidth="2.5" strokeLinecap="round" />
-      </svg>
-    </span>
-  )
-}
+function BrandMark() { return <Photo kind="logo" alt="Baby Belo Ateliê"/> }
 
 function ArrowIcon() {
   return (
@@ -114,10 +106,10 @@ function AuthLayout({ children }) {
   return (
     <main className="auth-layout">
       <section className="auth-showcase">
-        <a className="brand-lockup" href="#inicio" aria-label="Estoque Flex">
+        <a className="brand-lockup" href="#login" aria-label="Baby Belo">
           <BrandMark />
           <span>
-            <strong>Estoque Flex</strong>
+            <strong>Baby Belo Ateliê</strong>
             <small>GESTÃO DE ESTOQUE</small>
           </span>
         </a>
@@ -152,7 +144,7 @@ function AuthLayout({ children }) {
 
       <section className="auth-content">
         <div className="auth-content-inner">{children}</div>
-        <p className="auth-legal">Estoque Flex <span>·</span> Ambiente de gestão</p>
+        <p className="auth-legal">Baby Belo <span>·</span> Ambiente de gestão</p>
       </section>
     </main>
   )
@@ -195,82 +187,8 @@ function LoginScreen({ onLogin, busy, error, notice }) {
           {busy && <span className="button-spinner" aria-hidden="true" />}
         </button>
       </form>
-      <div className="auth-divider"><span /><i>ACESSO SEGURO</i><span /></div>
-      <p className="auth-footnote">O acesso utiliza as credenciais cadastradas no sistema.</p>
-    </AuthLayout>
-  )
-}
-
-function CompanyScreen({ user, companies, onSelect, onCreate, onLogout }) {
-  const [showCreate, setShowCreate] = useState(companies.length === 0)
-  const [companyName, setCompanyName] = useState('')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  async function handleCreate(event) {
-    event.preventDefault()
-    const name = companyName.trim()
-    if (!name) {
-      setError('Informe o nome da empresa.')
-      return
-    }
-    setError('')
-    setBusy(true)
-    try {
-      const company = await onCreate(name)
-      onSelect(company)
-    } catch (createError) {
-      setError(createError.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <AuthLayout>
-      <div className="account-strip">
-        <span className="user-avatar">{getInitials(user.nome)}</span>
-        <div className="account-details">
-          <span>CONTA AUTENTICADA</span>
-          <strong>{user.nome}</strong>
-          <small>{user.email}</small>
-        </div>
-        <button type="button" className="text-button" onClick={onLogout}>Sair</button>
-      </div>
-      <div className="auth-heading company-heading">
-        <span className="eyebrow">SEU ESPAÇO DE TRABALHO</span>
-        <h2>{companies.length ? 'Qual empresa vamos acessar?' : 'Vamos começar?'}</h2>
-        <p>Escolha o contexto da operação. Seus dados serão consultados de acordo com a empresa selecionada.</p>
-      </div>
-      {error && <div className="error-message" role="alert">{error}</div>}
-      {companies.length > 0 && (
-        <div className="company-list">
-          {companies.map((company) => (
-            <button className="company-choice" type="button" key={company.id} onClick={() => onSelect(company)}>
-              <span className="company-icon"><BuildingIcon /></span>
-              <span className="company-choice-copy"><strong>{company.nome}</strong><small>{company.ativo ? 'Empresa disponível' : 'Empresa inativa'}</small></span>
-              <span className="company-arrow"><ArrowIcon /></span>
-            </button>
-          ))}
-        </div>
-      )}
-      {showCreate ? (
-        <form className="create-company-form" onSubmit={handleCreate}>
-          <div className="form-field">
-            <label htmlFor="company-name">Nome da empresa</label>
-            <input id="company-name" name="companyName" value={companyName} onChange={(event) => setCompanyName(event.target.value)} placeholder="Ex.: Minha empresa" maxLength={160} required autoFocus />
-          </div>
-          <button className="button-primary" type="submit" disabled={busy}>
-            <span>{busy ? 'Criando empresa...' : 'Criar empresa e continuar'}</span>
-            {!busy && <ArrowIcon />}
-            {busy && <span className="button-spinner" aria-hidden="true" />}
-          </button>
-          {companies.length > 0 && <button type="button" className="secondary-button" onClick={() => { setShowCreate(false); setError('') }} disabled={busy}>Voltar às empresas</button>}
-        </form>
-      ) : (
-        <button type="button" className="create-company-link" onClick={() => { setShowCreate(true); setError('') }}><span aria-hidden="true">+</span>Adicionar outra empresa</button>
-      )}
-      <p className="company-footnote">O contexto da empresa será enviado nas consultas que exigem isolamento de dados.</p>
+      <div className="auth-divider"><span /><i>ACESSO AO ATELIÊ</i><span /></div>
+      <p className="auth-footnote">Utilize o acesso fornecido pelo responsável do ateliê.</p>
     </AuthLayout>
   )
 }
@@ -306,7 +224,8 @@ function EmptyState({ title, description }) {
   )
 }
 
-function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
+function Dashboard({ user, company, onLogout }) {
+  const [menuOpen, setMenuOpen] = useState(false)
   const [balances, setBalances] = useState([])
   const [lowStockItems, setLowStockItems] = useState([])
   const [summary, setSummary] = useState(null)
@@ -329,6 +248,7 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
   }
 
   const navigateToSection = (section) => {
+    setMenuOpen(false)
     if (section === activeSection) return
     if (section === 'overview') {
       setError('')
@@ -422,32 +342,35 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
           : activeSection === 'inventories'
             ? 'Inventários'
             : activeSection === 'custom'
-              ? 'Configurações personalizadas'
-              : 'Estoque baixo'
+              ? 'Categorias e campos'
+              : activeSection === 'company' ? 'Configurações' : 'Estoque baixo'
 
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
-        <a className="sidebar-brand" href="#visao-geral">
+        <a className="sidebar-brand" href="#login">
           <BrandMark />
-          <span><strong>Estoque Flex</strong><small>GESTÃO DE ESTOQUE</small></span>
+          <span><strong>Baby Belo Ateliê</strong><small>GESTÃO DE ESTOQUE</small></span>
         </a>
 
+        <button className="mobile-menu" type="button" aria-expanded={menuOpen} aria-controls="admin-navigation" onClick={()=>setMenuOpen(value=>!value)}>{menuOpen ? 'Fechar menu ×' : 'Menu ☰'}</button>
         <div className="sidebar-section-label">ESPAÇO DE TRABALHO</div>
-        <nav className="sidebar-navigation" aria-label="Navegação principal">
+        <nav id="admin-navigation" className={`sidebar-navigation ${menuOpen ? 'is-open' : ''}`} aria-label="Navegação principal">
           <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'overview' ? 'page' : undefined} onClick={() => navigateToSection('overview')}><OverviewIcon /><span>Visão geral</span></button>
           <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'products' ? 'page' : undefined} onClick={() => navigateToSection('products')}><ProductsIcon /><span>Produtos</span></button>
           <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'units' ? 'page' : undefined} onClick={() => navigateToSection('units')}><BuildingIcon /><span>Unidades de medida</span></button>
           <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'movements' ? 'page' : undefined} onClick={() => navigateToSection('movements')}><MovementIcon /><span>Movimentações</span></button>
           <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'inventories' ? 'page' : undefined} onClick={() => navigateToSection('inventories')}><InventoryIcon /><span>Inventários</span></button>
           <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'stock-low' ? 'page' : undefined} onClick={() => navigateToSection('stock-low')}><StockLowIcon /><span>Estoque baixo</span></button>
-          <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'custom' ? 'page' : undefined} onClick={() => navigateToSection('custom')}><CustomSettingsIcon /><span>Configurações CUSTOM</span></button>
+          <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'custom' ? 'page' : undefined} onClick={() => navigateToSection('custom')}><CustomSettingsIcon /><span>Categorias e campos</span></button>
+          <button type="button" className="sidebar-nav-item" aria-current={activeSection === 'company' ? 'page' : undefined} onClick={() => navigateToSection('company')}><BuildingIcon /><span>Configurações</span></button>
+          <button type="button" className="sidebar-nav-item mobile-logout" onClick={()=>onLogout()}><LogoutIcon/><span>Sair da conta</span></button>
         </nav>
 
         <div className="sidebar-context">
-          <span className="context-label">EMPRESA ATIVA</span>
+          <span className="context-label">ATELIÊ</span>
           <span className="context-name">{company.nome}</span>
-          <p>Os dados exibidos pertencem ao contexto selecionado.</p>
+          <p>Seu espaço de trabalho.</p>
         </div>
 
         <div className="sidebar-bottom">
@@ -461,15 +384,9 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
 
       <main className="app-main" id="visao-geral">
         <header className="app-topbar">
-          <div className="topbar-context"><span className="topbar-kicker">ESTOQUE FLEX</span><span className="topbar-separator">/</span><span>{pageTitle}</span></div>
+          <div className="topbar-context"><span className="topbar-kicker">BABY BELO</span><span className="topbar-separator">/</span><span>{pageTitle}</span></div>
           <div className="topbar-actions">
-            <label className="company-select-wrap">
-              <span className="sr-only">Empresa ativa</span>
-              <BuildingIcon />
-              <select value={company.id} onChange={(event) => onSelectCompany(Number(event.target.value))} aria-label="Selecionar empresa ativa">
-                {companies.map((item) => <option value={item.id} key={item.id}>{item.nome}</option>)}
-              </select>
-            </label>
+            <span className="atelier-context">{company.nome}</span>
             <span className="topbar-avatar" title={user.nome}>{getInitials(user.nome)}</span>
           </div>
         </header>
@@ -494,10 +411,10 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
               </span>
               <h1>{pageTitle}</h1>
               <p>
-                {activeSection === 'overview' ? (
+                {activeSection === 'company' ? 'Ajuste a leitura e a aparência do sistema para o seu conforto.' : activeSection === 'overview' ? (
                   <>Acompanhe os saldos e identifique o que precisa de atenção em <strong>{company.nome}</strong>.</>
                 ) : activeSection === 'products' ? (
-                  'Consulte, cadastre e atualize os produtos da empresa selecionada.'
+                  'Consulte, cadastre e atualize os produtos do ateliê.'
                 ) : activeSection === 'units' ? (
                   'Configure as unidades e a precisão das quantidades usadas no estoque.'
                 ) : activeSection === 'inventories' ? (
@@ -525,10 +442,10 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
             </div>
           )}
           {!roleError && !roleLoading && companyRole === 'VIEWER' && (
-            <div className="record-feedback notice" role="status">Seu perfil nesta empresa é de consulta. Você pode visualizar dados, saldos e históricos, mas não registrar alterações.</div>
+            <div className="record-feedback notice" role="status">Seu perfil permite apenas consultas. Você pode visualizar dados, saldos e históricos, mas não registrar alterações.</div>
           )}
 
-          {activeSection === 'products' ? (
+          {activeSection === 'company' ? <SettingsPage/> : activeSection === 'products' ? (
             <ProductsPage companyId={company.id} onLogout={onLogout} canWrite={canWrite} onNavigateUnits={() => navigateToSection('units')} />
           ) : activeSection === 'units' ? (
             <UnitsPage companyId={company.id} onLogout={onLogout} canWrite={canWrite} />
@@ -593,7 +510,7 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
                 <article className="data-panel stock-panel">
                   <div className="panel-heading">
                     <div className="panel-icon panel-icon-lavender"><BuildingIcon /></div>
-                    <div><h2>Saldos do estoque</h2><p>Produtos e quantidades retornados pela API.</p></div>
+                    <div><h2>Saldos do estoque</h2><p>Produtos e quantidades disponíveis.</p></div>
                   </div>
                   {loading && !error ? (
                     <div className="loading-lines" aria-label="Carregando saldos">
@@ -628,7 +545,7 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
                         <path d="M12 9v5m0 3h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                       </svg>
                     </div>
-                    <div><h2>Estoque baixo</h2><p>Itens sinalizados pela regra da API.</p></div>
+                    <div><h2>Estoque baixo</h2><p>Itens sinalizados abaixo do mínimo definido.</p></div>
                   </div>
                   {loading && !error ? (
                     <div className="loading-lines" aria-label="Carregando alertas">
@@ -651,7 +568,7 @@ function Dashboard({ user, company, companies, onSelectCompany, onLogout }) {
                 </article>
               </section>
 
-              <p className="dashboard-note">Os saldos são consultados no backend. Esta visão não calcula nem altera o estoque no navegador.</p>
+              <p className="dashboard-note">Os saldos acompanham as entradas, saídas e contagens do estoque.</p>
             </>
           )}
         </div>
@@ -666,7 +583,7 @@ function BootScreen() {
       <BrandMark />
       <span className="boot-spinner" />
       <h1>Preparando seu espaço</h1>
-      <p>Validando a sessão e consultando suas empresas.</p>
+      <p>Verificando seu acesso ao ateliê.</p>
     </main>
   )
 }
@@ -683,58 +600,20 @@ function OfflineScreen({ message, onRetry, onLogout }) {
   )
 }
 
+
 function App() {
   const [screen, setScreen] = useState(() => session.getToken() ? 'boot' : 'login')
   const [retryCount, setRetryCount] = useState(0)
   const [user, setUser] = useState(null)
-  const [companies, setCompanies] = useState([])
   const [activeCompany, setActiveCompany] = useState(null)
   const [loginError, setLoginError] = useState('')
   const [loginNotice, setLoginNotice] = useState('')
   const [loginBusy, setLoginBusy] = useState(false)
   const [bootError, setBootError] = useState('')
 
-  useEffect(() => {
-    let cancelled = false
-
-    async function restoreSession() {
-      if (!session.getToken()) return
-      try {
-        const [profile, availableCompanies] = await Promise.all([api.me(), api.companies()])
-        if (cancelled) return
-        setUser(profile)
-        setCompanies(availableCompanies)
-        const savedCompanyId = session.getCompanyId()
-        const savedCompany = availableCompanies.find((company) => String(company.id) === savedCompanyId)
-        if (savedCompany) {
-          setActiveCompany(savedCompany)
-          setScreen('app')
-        } else {
-          session.clearCompany()
-          setActiveCompany(null)
-          setScreen('companies')
-        }
-      } catch (error) {
-        if (cancelled) return
-        if (error instanceof ApiError && error.status === 401) {
-          session.clear()
-          setLoginNotice('Sua sessão expirou. Entre novamente.')
-          setScreen('login')
-        } else {
-          setBootError(error.message)
-          setScreen('offline')
-        }
-      }
-    }
-
-    void restoreSession()
-    return () => { cancelled = true }
-  }, [retryCount])
-
   const handleLogout = useCallback((notice = '') => {
     session.clear()
     setUser(null)
-    setCompanies([])
     setActiveCompany(null)
     setLoginError('')
     setLoginNotice(notice)
@@ -742,76 +621,72 @@ function App() {
     setScreen('login')
   }, [])
 
+  useEffect(() => {
+    const expired = () => handleLogout('Sua sessão expirou. Entre novamente.')
+    window.addEventListener('baby-belo:session-expired', expired)
+    return () => window.removeEventListener('baby-belo:session-expired', expired)
+  }, [handleLogout])
+
+  useEffect(() => {
+    if (!session.getToken()) return
+    let cancelled = false
+    async function restoreSession() {
+      try {
+        const [profile, companies] = await Promise.all([api.me(), api.companies()])
+        const company = resolveAtelier(companies)
+        await api.companyMembership(company.id)
+        if (cancelled) return
+        session.saveCompanyId(company.id)
+        setUser(profile)
+        setActiveCompany(company)
+        setScreen('app')
+      } catch (error) {
+        if (cancelled) return
+        if (error instanceof ApiError && error.status === 401) {
+          handleLogout('Sua sessão expirou. Entre novamente.')
+        } else {
+          setBootError(error.message)
+          setScreen('offline')
+        }
+      }
+    }
+    void restoreSession()
+    return () => { cancelled = true }
+  }, [retryCount, handleLogout])
+
   async function handleLogin(email, password) {
     setLoginBusy(true)
     setLoginError('')
     setLoginNotice('')
     session.clear()
     try {
-      const tokenResponse = await api.login(email, password)
-      session.saveToken(tokenResponse.access_token)
-      const [profile, availableCompanies] = await Promise.all([api.me(), api.companies()])
+      const token = await api.login(email, password)
+      session.saveToken(token.access_token)
+      const [profile, companies] = await Promise.all([api.me(), api.companies()])
+      const company = resolveAtelier(companies)
+      await api.companyMembership(company.id)
+      session.saveCompanyId(company.id)
       setUser(profile)
-      setCompanies(availableCompanies)
-      setActiveCompany(null)
-      session.clearCompany()
-      setScreen('companies')
+      setActiveCompany(company)
+      setScreen('app')
     } catch (error) {
       session.clear()
       setLoginError(error instanceof ApiError && error.status === 401
-        ? 'E-mail ou senha não conferem.'
-        : error.message)
+        ? 'E-mail ou senha não conferem.' : error.message)
     } finally {
       setLoginBusy(false)
     }
   }
 
-  async function handleCreateCompany(name) {
-    const company = await api.createCompany(name)
-    setCompanies((previous) => [...previous, company])
-    return company
-  }
-
-  function handleSelectCompany(company) {
-    session.saveCompanyId(company.id)
-    setActiveCompany(company)
-    setScreen('app')
-  }
-
-  function handleChangeCompany(companyId) {
-    const company = companies.find((item) => item.id === companyId)
-    if (company) handleSelectCompany(company)
-  }
-
-  function handleRetry() {
-    setBootError('')
-    setScreen('boot')
-    setRetryCount((value) => value + 1)
-  }
-
   if (screen === 'boot') return <BootScreen />
-  if (screen === 'offline') {
-    return <OfflineScreen message={bootError} onRetry={handleRetry} onLogout={() => handleLogout()} />
-  }
-  if (screen === 'login') {
-    return <LoginScreen onLogin={handleLogin} busy={loginBusy} error={loginError} notice={loginNotice} />
-  }
-  if (screen === 'companies' && user) {
-    return <CompanyScreen user={user} companies={companies} onSelect={handleSelectCompany} onCreate={handleCreateCompany} onLogout={() => handleLogout()} />
-  }
-  if (screen === 'app' && user && activeCompany) {
-    return (
-      <Dashboard
-        key={activeCompany.id}
-        user={user}
-        company={activeCompany}
-        companies={companies}
-        onSelectCompany={handleChangeCompany}
-        onLogout={handleLogout}
-      />
-    )
-  }
-  return <BootScreen />
+  if (screen === 'offline') return <OfflineScreen message={bootError} onRetry={() => {
+    setBootError(''); setScreen('boot'); setRetryCount(value => value + 1)
+  }} onLogout={() => handleLogout()} />
+  if (screen === 'app' && user && activeCompany) return <Dashboard key={activeCompany.id}
+    user={user} company={activeCompany} onLogout={handleLogout} />
+  return <LoginScreen onLogin={handleLogin} busy={loginBusy} error={loginError} notice={loginNotice} />
 }
 
 export default App
+
+
