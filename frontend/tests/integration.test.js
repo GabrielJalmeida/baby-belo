@@ -101,7 +101,7 @@ test('atelier is derived from authorized companies, with no fixed id or first-co
 })
 
 test('accessibility preferences validate, persist, recover from corrupt storage and apply globally',()=>{
-  const selected={dark:true,fontSize:'larger',contrast:true,underline:true}
+  const selected={dark:true,fontSize:'larger',contrast:true,underline:true,reduceMotion:true}
   const storage={getItem:()=>JSON.stringify(selected)}
   assert.deepEqual(readPreferences(storage),selected)
   assert.equal(readPreferences({getItem:()=>'{broken'}).fontSize,'normal')
@@ -109,5 +109,6 @@ test('accessibility preferences validate, persist, recover from corrupt storage 
   assert.equal(normalizePreferences({dark:'true',fontSize:'invalid'}).dark,false)
   const root={dataset:{}}
   applyPreferences(root,selected)
-  assert.deepEqual(root.dataset,{theme:'dark',fontSize:'larger',contrast:'true',underline:'true'})
+  assert.deepEqual(root.dataset,{theme:'dark',fontSize:'larger',contrast:'true',underline:'true',reduceMotion:'true'})
+  assert.equal(normalizePreferences({}).reduceMotion,false)
 })

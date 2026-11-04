@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import App from './App.jsx'
 import Landing from './Landing.jsx'
 import AccessibilityProvider from './AccessibilityProvider.jsx'
+import AccessibilityWidget from './AccessibilityWidget.jsx'
 import './brand.css'
 import './accessibility.css'
 
@@ -17,6 +18,6 @@ export default function Experience() {
   return <AccessibilityProvider>{isAdmin ? <>
     <div className="return-bar"><a className="history-button" href="#topo">← Nossa História</a><span>Baby Belo Ateliê</span></div>
     <App />
-  </> : <Landing />}</AccessibilityProvider>
+  </> : <Landing />}<AccessibilityWidget /></AccessibilityProvider>
 }
 

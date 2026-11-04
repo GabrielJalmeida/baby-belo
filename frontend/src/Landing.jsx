@@ -1,6 +1,7 @@
 import './Landing.css'
+import useSmoothScroll from './useSmoothScroll.js'
 export function Photo({kind,alt}) {return <div className={`reference-photo photo-${kind}`}><img src="/reference.png" alt={alt}/></div>}
-export default function Landing(){return <div className="landing" id="topo">
+export default function Landing(){useSmoothScroll();return <div className="landing" id="topo">
 <header className="landing-header wrap"><a className="landing-brand" href="#topo"><Photo kind="logo" alt="Baby Belo Ateliê"/><span><strong>Baby Belo</strong><small>ATELIÊ • DESDE 2018</small></span></a><nav aria-label="Navegação principal"><a href="#historia">Nossa história</a><a href="#bastidores">Bastidores</a></nav></header>
 <main><section className="landing-hero wrap"><div><span className="kicker">FEITO POR NÓS. PENSADO PARA VOCÊ.</span><h1>Uma história<br/>a dois.</h1><p>Bolsas de maternidade artesanais e personalizadas, com cuidado em cada detalhe.</p><a className="pill" href="#login">Acessar Estoque</a><small className="signature">Tamiris &amp; Daniel • Baby Belo Ateliê</small></div><figure><Photo kind="hero" alt="Tamiris e Daniel no ateliê com bolsas de maternidade personalizadas"/><figcaption>Tamiris e Daniel, o casal por trás do ateliê.</figcaption></figure></section>
 <div className="waves" aria-hidden="true"><svg viewBox="0 0 1440 40" preserveAspectRatio="none"><path fill="#cbb8d0" d="M0 14Q180 36 360 14T720 18T1080 8T1440 5V40H0Z"/><path fill="#a6d4e8" d="M0 27Q160 10 360 22T720 23T1080 23T1440 17V40H0Z"/></svg></div>

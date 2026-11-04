@@ -1,11 +1,12 @@
 export const PREFERENCES_KEY = 'baby-belo.accessibility'
-export const defaultPreferences = { dark: false, fontSize: 'normal', contrast: false, underline: false }
+export const defaultPreferences = { dark: false, fontSize: 'normal', contrast: false, underline: false, reduceMotion: false }
 export function normalizePreferences(value = {}) {
   return {
     dark: value?.dark === true,
     fontSize: ['normal', 'large', 'larger'].includes(value?.fontSize) ? value.fontSize : 'normal',
     contrast: value?.contrast === true,
     underline: value?.underline === true,
+    reduceMotion: value?.reduceMotion === true,
   }
 }
 export function readPreferences(storage) {
@@ -17,4 +18,5 @@ export function applyPreferences(root, preferences) {
   root.dataset.fontSize = preferences.fontSize
   root.dataset.contrast = String(preferences.contrast)
   root.dataset.underline = String(preferences.underline)
+  root.dataset.reduceMotion = String(preferences.reduceMotion)
 }
