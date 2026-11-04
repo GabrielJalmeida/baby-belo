@@ -1,4 +1,5 @@
 import './ProductCustomFields.css'
+import { QuickCreateCategory } from './QuickCreate.jsx'
 
 function fieldInput(field, value, options, onChange, disabled) {
   const common = {
@@ -65,6 +66,10 @@ export default function ProductCustomFields({
   onValueChange,
   onRetryCategories,
   onRetryFields,
+  companyId,
+  onLogout,
+  canQuickCreateCategory = false,
+  onCategoryCreated,
 }) {
   const currentCategoryMissing = categoryId
     && !categories.some((category) => String(category.id) === String(categoryId))
@@ -119,6 +124,15 @@ export default function ProductCustomFields({
                 ? 'Este produto já possui uma categoria. O produto mantém a categoria já cadastrada.'
                 : 'A categoria é opcional. Cadastre categorias e campos em Categorias e campos.'}
         </small>
+
+        {onCategoryCreated && !categoryLocked && !originalCategoryId && (
+          <QuickCreateCategory
+            companyId={companyId}
+            onLogout={onLogout}
+            onCreated={onCategoryCreated}
+            disabled={!canQuickCreateCategory || itemDataLoading || categoriesLoading}
+          />
+        )}
       </div>
 
       {categoryId && (

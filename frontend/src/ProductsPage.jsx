@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ApiError, api } from './api.js'
 import ProductCustomFields from './ProductCustomFields.jsx'
 import ProductDetails from './ProductDetails.jsx'
+import { QuickCreateUnit } from './QuickCreate.jsx'
 
 const PAGE_SIZE = 10
 
@@ -400,6 +401,21 @@ export default function ProductsPage({
     setCustomLoading(Boolean(categoryId))
   }
 
+  function handleQuickUnitCreated(unit) {
+    setUnits((previous) => [...previous.filter((item) => Number(item.id) !== Number(unit.id)), unit])
+    setDraft((previous) => ({ ...previous, unidade_id: String(unit.id) }))
+    setFormError('')
+  }
+
+  function handleQuickCategoryCreated(category) {
+    setCustomCategories((previous) => [
+      ...previous.filter((item) => Number(item.id) !== Number(category.id)),
+      category,
+    ])
+    setCustomCategoriesError('')
+    handleCustomCategoryChange(String(category.id))
+  }
+
   function handleCustomValueChange(fieldId, value) {
     setCustomDraft((previous) => ({ ...previous, [fieldId]: value }))
   }
@@ -737,7 +753,7 @@ export default function ProductsPage({
 
           {units.length === 0 && formMode === 'create' && (
             <div className="record-feedback notice" role="status">
-              Cadastre uma unidade de medida antes de criar um produto.
+              Nenhuma unidade de medida cadastrada. Use “+ Nova unidade” abaixo ou
               <button
                 type="button"
                 className="text-button"
@@ -792,6 +808,15 @@ export default function ProductsPage({
                     ? 'Esta unidade permite quantidades fracionárias.'
                     : 'Esta unidade aceita somente quantidades inteiras.'}
                 </small>
+              )}
+
+              {canWrite && (
+                <QuickCreateUnit
+                  companyId={companyId}
+                  onLogout={onLogout}
+                  onCreated={handleQuickUnitCreated}
+                  disabled={saving}
+                />
               )}
             </div>
 
@@ -855,6 +880,10 @@ export default function ProductsPage({
             onValueChange={handleCustomValueChange}
             onRetryCategories={retryCustomCategories}
             onRetryFields={retryCustomFields}
+            companyId={companyId}
+            onLogout={onLogout}
+            canQuickCreateCategory={canWrite && !saving}
+            onCategoryCreated={handleQuickCategoryCreated}
           />
 
           <div className="record-editor-footer">

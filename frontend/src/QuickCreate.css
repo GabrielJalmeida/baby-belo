@@ -1,0 +1,72 @@
+.quick-create-toggle {
+  justify-self: start;
+  padding-left: 0;
+}
+
+.quick-create-toggle:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+  text-decoration: none;
+}
+
+.quick-create-panel {
+  display: grid;
+  gap: .75rem;
+  margin-top: .35rem;
+  padding: .9rem 1rem;
+  border: 1px dashed light-dark(#cbd0e5, #65516b);
+  border-radius: 11px;
+  background: light-dark(rgba(242, 245, 255, .7), #2c2532);
+}
+
+.quick-create-title {
+  color: light-dark(#42475d, #f4eaf6);
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.quick-create-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: .75rem;
+}
+
+.quick-create-check {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  color: light-dark(#42475d, #f4eaf6);
+  font-size: .8rem;
+  cursor: pointer;
+}
+
+.quick-create-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.quick-create-error {
+  margin-bottom: 0;
+}
+
+/* O painel fica dentro de .form-field, então o checkbox herdava o
+   estilo das caixas de texto (altura 49px e largura 100%). */
+.quick-create-panel .quick-create-check input {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  accent-color: light-dark(#704875, #cbbdd0);
+  cursor: pointer;
+}
+
+/* Mantém cada campo colado ao próprio título quando a coluna ao lado
+   fica mais alta (evita a caixa "descer" e ficar desalinhada). */
+.record-form-grid > .form-field {
+  align-content: start;
+}
